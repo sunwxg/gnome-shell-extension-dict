@@ -1,0 +1,22 @@
+<schemalist gettext-domain="gnome-shell-extensions">
+  <schema id="org.gnome.shell.extensions.dict" path="/org/gnome/shell/extensions/dict/">
+    <key name="window-width" type="i">
+      <default>500</default>
+      <summary>Window width</summary>
+      <description>
+      </description>
+    </key>
+    <key name="window-height" type="i">
+      <default>600</default>
+      <summary>Window height</summary>
+      <description>
+      </description>
+    </key>
+    <key name="address-list" type="as">
+      <default>["true;https://www.bing.com/dict/search=?q=%WORD&amp;mkt=zh-cn"]</default>
+      <summary>Window height</summary>
+      <description>
+      </description>
+    </key>
+  </schema>
+</schemalist>
