@@ -359,4 +359,5 @@ function disable() {
     flag = null;
 
     menuButton.destroy();
+    menuButton = null;
 }
