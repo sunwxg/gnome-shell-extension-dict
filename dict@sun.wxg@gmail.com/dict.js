@@ -106,6 +106,30 @@ class Dict {
         //hbox.pack_end(button, false, false, 10);
 
         this.web_view = new Webkit.WebView();
+
+        this.web_view.connect('load_changed', (w, event) => {
+            //print("wxg: event: ", event);
+            switch(event) {
+                case Webkit.LoadEvent.FINISHED:
+                    print("wxg: event: finished");
+                    break;
+                case Webkit.LoadEvent.COMMITTED:
+                    print("wxg: event: committed");
+                    break;
+                case Webkit.LoadEvent.REDIRECTED:
+                    print("wxg: event: redirected");
+                    break;
+                case Webkit.LoadEvent.STARTED:
+                    print("wxg: event: started");
+                    break;
+            }
+
+            if (event != Webkit.LoadEvent.FINISHED)
+                return;
+
+            this.web_view.show();
+        });
+
         this.web_view.load_uri(this._getUrl());
 
         let scroll_window = new Gtk.ScrolledWindow({ expand: true });
@@ -171,11 +195,13 @@ class Dict {
         this.x = x;
         this.y = y;
 
-        this.web_view.load_uri(this._getUrl(this.words));
         this.setWindowPosition();
         this.window.show_all();
         this.window.activate();
         this.active = true;
+
+        this.web_view.hide();
+        this.web_view.load_uri(this._getUrl(this.words));
     }
 
     setWindowPosition() {
