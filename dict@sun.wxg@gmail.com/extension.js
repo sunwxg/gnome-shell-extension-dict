@@ -89,6 +89,7 @@ class Flag {
         this.actor = new St.BoxLayout({ reactive: true,
                                     can_focus: true,
                                     track_hover: true});
+        this.actor.hide();
 
         let gicon = new Gio.FileIcon({
                     file: Gio.File.new_for_path(Me.path + '/icons/flag.png') });
