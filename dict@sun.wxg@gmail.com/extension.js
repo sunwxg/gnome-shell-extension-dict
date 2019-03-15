@@ -199,7 +199,7 @@ class Flag {
         let [x, y, mod] =global.get_pointer();
         this.dictProxy.translateWordsRemote(this.text, x, y);
 
-        let currentWorkspace = global.workspace_manager.get_active_workspace();
+        let currentWorkspace = this.getWM().get_active_workspace();
         let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
         for (let i = 0; i < windows.length; i++) {
             if (windows[i].title == 'Dict') {
@@ -282,6 +282,13 @@ class Flag {
         this._gsettings.set_int(WINDOW_HEIGHT, height);
     }
 
+    getWM() {
+        if (global.screen)
+            return golbal.screen;
+        else
+            return global.workspace_manager;
+    }
+
     destroy(){
         if (this._flagWatchId) {
             Mainloop.source_remove(this._flagWatchId);
@@ -296,7 +303,7 @@ class Flag {
             this.checkClipboardId = 0;
         }
         if (this.checkStClipboardId != 0) {
-            this.clipboard.disconnect(this.checkStClipboardId);
+            Mainloop.source_remove(this.checkStClipboardId);
             this.checkStClipboardId = 0;
         }
         if (this.removeNotificaionId != 0) {
