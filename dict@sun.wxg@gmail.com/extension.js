@@ -121,7 +121,7 @@ class Flag {
 
         if (Meta.is_wayland_compositor()) {
             this.stClipboard = St.Clipboard.get_default();
-            this.checkStClipboardId = Mainloop.timeout_add(1000, this.checkStClipboard.bind(this));
+            this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT, this.checkStClipboard.bind(this));
             GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
         } else {
             this.clipboard = Gtk.Clipboard.get('PRIMARY');
