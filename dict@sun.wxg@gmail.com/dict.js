@@ -76,6 +76,8 @@ class Dict {
                                                    title: 'Dict',
                                                    border_width: 1 });
 
+        this.window.set_icon_from_file(this.path + '/icons/flag.png');
+
         //this.window.connect('focus-in-event', () => { print("wxg: focus in") });
         this.focusOutId = this.window.connect('focus-out-event', this._mouseLeave.bind(this));
         //this.window.connect('enter-notify-event', this._mouseMotion.bind(this));
