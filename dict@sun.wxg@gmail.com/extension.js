@@ -285,7 +285,7 @@ class Flag {
 
     getWM() {
         if (global.screen)
-            return golbal.screen;
+            return global.screen;
         else
             return global.workspace_manager;
     }
