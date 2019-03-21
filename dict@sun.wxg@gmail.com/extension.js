@@ -236,6 +236,7 @@ class Flag {
         this.actor.set_position(x + 10, y);
         print("wxg: x y ", x, "  ", y);
 
+        Main.uiGroup.set_child_above_sibling(this.actor, null);
         this.actor.show();
 
         if (this._flagWatchId) {
