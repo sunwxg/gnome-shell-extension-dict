@@ -105,8 +105,7 @@ class Flag {
         //button.connect('notify::hover', this.onHoverChanged.bind(this));
         this.actor.add_actor(button);
 
-        Main.uiGroup.add_actor(this.actor);
-        Main.layoutManager.trackChrome(this.actor);
+        Main.layoutManager.addChrome(this.actor);
 
         this.text = null;
         this.oldText = null;
@@ -297,7 +296,6 @@ class Flag {
             this._flagWatchId = 0;
         }
 
-        Main.uiGroup.remove_actor(this.actor);
         Main.layoutManager.removeChrome(this.actor);
 
         if (this.checkClipboardId != 0) {
