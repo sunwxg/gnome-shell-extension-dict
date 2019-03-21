@@ -107,8 +107,24 @@ class Dict {
         //let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
         //hbox.pack_end(button, false, false, 10);
 
-        this.web_view = new Webkit.WebView();
+        let manager = new Webkit.WebsiteDataManager({base_cache_directory: '/dev/null',
+                                                     base_data_directory: '/dev/null',
+                                                     disk_cache_directory: '/dev/null',
+                                                     indexeddb_directory: '/dev/null',
+                                                     local_storage_directory: '/dev/null',
+                                                     offline_application_cache_directory: '/dev/null',
+                                                     websql_directory: '/dev/null' });
 
+        let context = Webkit.WebContext.new_with_website_data_manager(manager);
+        this.web_view = Webkit.WebView.new_with_context(context);
+        let settings = this.web_view.get_settings();
+        settings.set_enable_page_cache(false);
+        settings.set_enable_offline_web_application_cache(false);
+        this.web_view.set_settings(settings);
+
+        //this.web_view = new Webkit.WebView();
+
+        /*
         this.web_view.connect('load_changed', (w, event) => {
             //print("wxg: event: ", event);
             switch(event) {
@@ -131,6 +147,7 @@ class Dict {
 
             this.web_view.show();
         });
+        */
 
         this.web_view.load_uri(this._getUrl());
 
@@ -197,13 +214,14 @@ class Dict {
         this.x = x;
         this.y = y;
 
+        this.web_view.load_uri(this._getUrl(this.words));
         this.setWindowPosition();
         this.window.show_all();
         this.window.activate();
         this.active = true;
 
-        this.web_view.hide();
-        this.web_view.load_uri(this._getUrl(this.words));
+        //this.web_view.hide();
+        //this.web_view.load_uri(this._getUrl(this.words));
     }
 
     setWindowPosition() {
