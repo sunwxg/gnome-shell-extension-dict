@@ -120,6 +120,7 @@ class Dict {
         let settings = this.web_view.get_settings();
         settings.set_enable_page_cache(false);
         settings.set_enable_offline_web_application_cache(false);
+        settings.set_enable_javascript(false);
         this.web_view.set_settings(settings);
 
         //this.web_view = new Webkit.WebView();
