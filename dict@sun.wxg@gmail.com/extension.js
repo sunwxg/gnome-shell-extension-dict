@@ -120,21 +120,19 @@ class Flag {
 
         if (Meta.is_wayland_compositor()) {
             this.stClipboard = St.Clipboard.get_default();
-            this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT, this.checkStClipboard.bind(this));
+            this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT,
+                                                           this.checkStClipboard.bind(this));
             GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
         } else {
             this.clipboard = Gtk.Clipboard.get('PRIMARY');
             this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
         }
 
-        this.removeNotificaionId = global.display.connect('window-demands-attention', this._onWindowDemandsAttention.bind(this));
+        this.removeNotificaionId = global.display.connect('window-demands-attention',
+                                                          this._onWindowDemandsAttention.bind(this));
     }
 
     checkStClipboard() {
-        //this.stClipboard.get_text(St.ClipboardType.CLIPBOARD,
-            //(clipboard, text) => {
-                //print("wxg: St CLIPBOARD: ", text);
-            //});
         this.stClipboard.get_text(St.ClipboardType.PRIMARY,
             (clipboard, text) => {
                 if (!text)
@@ -151,7 +149,6 @@ class Flag {
     }
 
     checkClipboard(clipboard, event) {
-        print("wxg: primary clipboard: ", this.clipboard.wait_for_text());
         let text = this.clipboard.wait_for_text();
         if (!text)
             return;
@@ -172,7 +169,6 @@ class Flag {
     //}
 
     flagClick() {
-        //print("wxg: clicked");
         if (this._flagWatchId) {
             Mainloop.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
@@ -233,7 +229,6 @@ class Flag {
             y = y - 50;
 
         this.actor.set_position(x + 10, y);
-        print("wxg: x y ", x, "  ", y);
 
         Main.uiGroup.set_child_above_sibling(this.actor, null);
         this.actor.show();
@@ -332,7 +327,6 @@ class MenuButton extends PanelMenu.Button {
 
         let gicon = new Gio.FileIcon({
                     file: Gio.File.new_for_path(Me.path + '/icons/flag.png') });
-        //let icon = new St.Icon({ icon_name: 'flag-symbolic',
         let icon = new St.Icon({ gicon: gicon,
                                  style_class: 'system-status-icon' });
         this.actor.add_child(icon);
@@ -349,13 +343,11 @@ let flag;
 let menuButton;
 
 function init(metadata) {
-    print("wxg: init");
     let theme = imports.gi.Gtk.IconTheme.get_default();
     theme.append_search_path(metadata.path + '/icons');
 }
 
 function enable() {
-    print("wxg: enable");
     flag = new Flag();
     menuButton = new MenuButton();
     Main.panel.addToStatusArea('flag', menuButton);

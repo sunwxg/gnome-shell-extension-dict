@@ -91,8 +91,7 @@ class Dict {
         this.height = 600;
 
         let headerBar = new Gtk.HeaderBar({ show_close_button: false,
-                                            title: 'Dict',
-        });
+                                            title: 'Dict', });
         this.window.set_titlebar(headerBar);
 
         let button = new Gtk.ToggleButton({});
@@ -103,9 +102,6 @@ class Dict {
         button.set_image(image);
 
         headerBar.pack_end(button);
-
-        //let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
-        //hbox.pack_end(button, false, false, 10);
 
         let manager = new Webkit.WebsiteDataManager({base_cache_directory: '/dev/null',
                                                      base_data_directory: '/dev/null',
@@ -122,8 +118,6 @@ class Dict {
         settings.set_enable_offline_web_application_cache(false);
         settings.set_enable_javascript(false);
         this.web_view.set_settings(settings);
-
-        //this.web_view = new Webkit.WebView();
 
         /*
         this.web_view.connect('load_changed', (w, event) => {
@@ -159,7 +153,6 @@ class Dict {
                                  vexpand: true,
         });
 
-        //vbox.add(hbox);
         vbox.add(scroll_window);
 
         this.window.add(vbox);
@@ -198,15 +191,12 @@ class Dict {
     }
 
     _getUrl(words) {
-        print("wxg: url: ", this.url);
-        print("wxg: WEB: ", WEB_SITE);
         let url;
         if (words)
             url = this.url.replace("%WORD", words);
         else
             url = this.url.replace("%WORD", '');
 
-        print("wxg: url after: ", url);
         return url;
     }
 
@@ -220,9 +210,6 @@ class Dict {
         this.window.show_all();
         this.window.activate();
         this.active = true;
-
-        //this.web_view.hide();
-        //this.web_view.load_uri(this._getUrl(this.words));
     }
 
     setWindowPosition() {
