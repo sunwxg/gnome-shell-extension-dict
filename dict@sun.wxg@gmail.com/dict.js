@@ -62,7 +62,6 @@ class Dict {
     }
 
     _onActivate() {
-        //print("wxg: onActivate");
         //this.window.show_all();
     }
 
@@ -78,7 +77,6 @@ class Dict {
 
         this.window.set_icon_from_file(this.path + '/icons/flag.png');
 
-        //this.window.connect('focus-in-event', () => { print("wxg: focus in") });
         this.focusOutId = this.window.connect('focus-out-event', this._mouseLeave.bind(this));
         //this.window.connect('enter-notify-event', this._mouseMotion.bind(this));
         //this.window.connect('leave-notify-event', this._mouseLeave.bind(this));
@@ -121,22 +119,6 @@ class Dict {
 
         /*
         this.web_view.connect('load_changed', (w, event) => {
-            //print("wxg: event: ", event);
-            switch(event) {
-                case Webkit.LoadEvent.FINISHED:
-                    print("wxg: event: finished");
-                    break;
-                case Webkit.LoadEvent.COMMITTED:
-                    print("wxg: event: committed");
-                    break;
-                case Webkit.LoadEvent.REDIRECTED:
-                    print("wxg: event: redirected");
-                    break;
-                case Webkit.LoadEvent.STARTED:
-                    print("wxg: event: started");
-                    break;
-            }
-
             if (event != Webkit.LoadEvent.FINISHED)
                 return;
 
@@ -181,11 +163,9 @@ class Dict {
     }
 
     _mouseMotion(widget, event) {
-        //print("wxg: event is ", event.get_event_type());
     }
 
     _mouseLeave(widget, event) {
-        //print("wxg: window event is ", event.get_event_type());
         this.window.hide();
         this.active = false;
     }
@@ -270,8 +250,8 @@ if (ARGV.length > 0) {
 }
 
 let dbusProxy = new DBusProxy(Gio.DBus.session,
-                               'org.freedesktop.DBus',
-                               '/org/freedesktop/DBus');
+                              'org.freedesktop.DBus',
+                              '/org/freedesktop/DBus');
 try {
     dbusProxy.GetNameOwnerSync('org.gnome.Dict');
 } catch (e) {

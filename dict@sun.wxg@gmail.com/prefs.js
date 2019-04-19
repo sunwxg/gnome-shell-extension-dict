@@ -3,10 +3,13 @@ const GLib = imports.gi.GLib;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
-let gsettings;
 
 const SCHEMA_NAME = 'org.gnome.shell.extensions.dict';
 const ADDRESS_LIST = 'address-list';
+const ADDRESS_ACTIVE = 'address-active';
+
+const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ];
+let gsettings;
 
 function init() {
     gsettings = Convenience.getSettings(SCHEMA_NAME);
@@ -37,28 +40,33 @@ class buildUi {
         let addressBox = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
         });
-        //addressBox.add(this.addressHead());
 
 
         this.addressListBox = new Gtk.ListBox({
             margin_top: 10,
         });
 
+        ADDRESS.forEach( (a) => {
+            this.addressListBox.add(this.addressRow(a, true));
+        });
+
         let addressList = [];
         gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
-            let [enable, link] = a.split(';');
-            addressList.push({ enable: (enable == 'true') ? true : false,
-                               address: link });
+            if (a != "")
+                addressList.push(a);
         });
 
-        this.checkButtonToggleId = [];
         addressList.forEach( (a) => {
-            this.addressListBox.add(this.addressRow(a.enable, a.address));
+            this.addressListBox.add(this.addressRow(a, false));
         });
 
-        //let frame = new Gtk.Frame({ margin: 10 });
-        //frame.add(addressBox);
-        //vbox.add(frame);
+        let addressActive = gsettings.get_string(ADDRESS_ACTIVE);
+        this.addressListBox.get_children().forEach( (row) => {
+            let [check, entry] = row.get_child().get_children();
+            if (entry.get_text() == addressActive) {
+                check.active = true;
+            }
+        });
 
         vbox.add(this.addRemoveButton());
         vbox.add(this.addressListBox);
@@ -86,34 +94,42 @@ class buildUi {
     }
 
     addClicked() {
-        this.addressListBox.add(this.addressRow(false, 'http://'));
+        this.addressListBox.add(this.addressRow('http://', false));
         this.addressListBox.show_all();
     }
 
     removeClicked() {
         let row = this.addressListBox.get_selected_row();
-        if (row)
-            this.addressListBox.remove(row);
+        if (!row)
+            return;
+
+        if (row.isDefault)
+            return;
+
+        this.addressListBox.remove(row);
 
         this.addressUpdate();
     }
 
-    addressRow(enable, address) {
+    addressRow(address, isDefault) {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
 
         let check = new Gtk.CheckButton();
-        check.active = enable;
         hbox.pack_start(check, false, false, 5);
         check.id = check.connect('toggled', this.checkToggled.bind(this));
 
         let entry = new Gtk.Entry();
         entry.set_text(address);
         hbox.pack_end(entry, true, true, 5);
-        entry.connect('changed', this.addressUpdate.bind(this));
+
+        if (isDefault)
+            entry.editable = false;
 
         let row = new Gtk.ListBoxRow({});
         row.add(hbox);
+        row.isDefault = isDefault;
 
+        entry.connect('changed', this.addressUpdate.bind(this));
         entry.connect("grab_focus", () => { row.emit("activate") });
         return row;
     }
@@ -133,35 +149,20 @@ class buildUi {
 
     addressUpdate() {
         let addressList = [];
+        let addressActive;
         let rows = this.addressListBox.get_children();
-        rows.forEach( (row) => { let [check, entry] = row.get_child().get_children();
-            let enable = check.active ? 'true' : 'false';
+        rows.forEach( (row) => {
+            let [check, entry] = row.get_child().get_children();
             let link = entry.get_text();
-            addressList.push(enable + ';' + link);
+            if (!row.isDefault)
+                addressList.push(link);
+
+            if (check.active)
+                addressActive = link;
         });
 
         gsettings.set_strv(ADDRESS_LIST, addressList);
-    }
-
-    addressHead() {
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
-
-        let enableLabel = new Gtk.Label({ label: "Enable" });
-        let frame = new Gtk.Frame({ margin: 5 });
-        frame.add(enableLabel);
-        hbox.pack_start(frame, false, false, 5);
-
-        let nameLabel = new Gtk.Label({ label: "Name" });
-        frame = new Gtk.Frame({ margin: 5 });
-        frame.add(nameLabel);
-        hbox.pack_start(frame, false, false, 5);
-
-        let addressLabel = new Gtk.Label({ label: "Adress" });
-        frame = new Gtk.Frame({ margin: 5 });
-        frame.add(addressLabel);
-        hbox.pack_end(frame, true, true, 5);
-
-        return hbox;
+        gsettings.set_string(ADDRESS_ACTIVE, addressActive);
     }
 
     addBoldTextToBox(text, box) {

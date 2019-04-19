@@ -13,8 +13,14 @@
       </description>
     </key>
     <key name="address-list" type="as">
-      <default>["true;https://www.bing.com/dict/search=?q=%WORD&amp;mkt=zh-cn"]</default>
-      <summary>Window height</summary>
+      <default>[]</default>
+      <summary>Address list</summary>
+      <description>
+      </description>
+    </key>
+    <key name="address-active" type="s">
+      <default>"https://www.bing.com/dict/search=?q=%WORD&amp;mkt=zh-cn"</default>
+      <summary>Active address</summary>
       <description>
       </description>
     </key>
