@@ -28,7 +28,7 @@ const FLAG_DELAY = 1500;
 const DICT_SCHEMA = 'org.gnome.shell.extensions.dict';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
-const ADDRESS_LIST = 'address-list';
+const ADDRESS_ACTIVE = 'address-active';
 
 const BUS_NAME = 'org.gnome.Dict';
 const OBJECT_PATH = '/org/gnome/Dict';
@@ -76,7 +76,7 @@ class Flag {
         this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
 
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
-        this.addressListId = this._gsettings.connect("changed::" + ADDRESS_LIST,
+        this.addressListId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
                                                      this.updateLink.bind(this));
         this.updateLink();
 
@@ -102,7 +102,6 @@ class Flag {
                                     track_hover: true,
                                     child: icon });
         button.connect("clicked", this.flagClick.bind(this));
-        //button.connect('notify::hover', this.onHoverChanged.bind(this));
         this.actor.add_actor(button);
 
         Main.layoutManager.addChrome(this.actor);
@@ -113,10 +112,6 @@ class Flag {
         this.checkStClipboardId = 0;
         this.checkClipboardId = 0;
         this._flagWatchId = 0;
-
-        //let display = Gdk.Display.get_default();
-        //this.clipboard = Gtk.Clipboard.get_default(display);
-        //this.clipboard = Gtk.Clipboard.get('CLIPBOARD');
 
         if (Meta.is_wayland_compositor()) {
             this.stClipboard = St.Clipboard.get_default();
@@ -163,10 +158,6 @@ class Flag {
     getText(clipBoard, text) {
         this.text = text;
     }
-
-    //onHoverChanged(actor) {
-        //print("wxg: hover is ", actor.hover);
-    //}
 
     flagClick() {
         if (this._flagWatchId) {
@@ -230,7 +221,7 @@ class Flag {
 
         this.actor.set_position(x + 10, y);
 
-        Main.uiGroup.set_child_above_sibling(this.actor, null);
+        //Main.uiGroup.set_child_above_sibling(this.actor, null);
         this.actor.show();
 
         if (this._flagWatchId) {
@@ -265,11 +256,7 @@ class Flag {
     }
 
     updateLink() {
-        this._gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
-            let [enable, link] = a.split(';');
-            if (enable == 'true')
-                this.link = link;
-        });
+        this.link = this._gsettings.get_string(ADDRESS_ACTIVE);
         this.dictProxy.linkUpdateRemote(this.link);
     }
 
