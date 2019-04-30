@@ -90,6 +90,10 @@ class buildUi {
         hbox.pack_start(add, false, false, 5);
         hbox.pack_start(remove, false, false, 5);
 
+        let info = new Gtk.Label();
+        info.set_markup("Use <b>%WORD</b> to replace the search word");
+        hbox.pack_start(info, false, false, 5);
+
         return hbox;
     }
 
