@@ -28,6 +28,8 @@ const DictIface = '<node> \
 </method> \
 <method name="linkUpdate"> \
     <arg type="s" direction="in"/> \
+    <arg type="b" direction="in"/> \
+    <arg type="b" direction="in"/> \
 </method> \
 <method name="windowSize"> \
     <arg type="i" direction="in"/> \
@@ -45,6 +47,8 @@ const DictIface = '<node> \
 class Dict {
     constructor(words) {
         this.url = WEB_SITE;
+        this.enableJS = false;
+        this.loadImage = false;
         this.words = words;
         this.active = false;
 
@@ -114,7 +118,8 @@ class Dict {
         let settings = this.web_view.get_settings();
         settings.set_enable_page_cache(false);
         settings.set_enable_offline_web_application_cache(false);
-        settings.set_enable_javascript(false);
+        settings.set_enable_javascript(this.enableJS);
+        settings.set_auto_load_images(this.loadImage);
         this.web_view.set_settings(settings);
 
         /*
@@ -219,8 +224,16 @@ class Dict {
         this.window.move(windowX, Math.floor(windowY));
     }
 
-    linkUpdate(link) {
+    linkUpdate(link, enableJS, loadImage) {
         this.url = link;
+        this.enableJS = enableJS;
+        let settings = this.web_view.get_settings();
+        settings.set_enable_javascript(this.enableJS);
+
+        this.loadImage = loadImage;
+        settings.set_auto_load_images(this.loadImage);
+
+        this.web_view.set_settings(settings);
     }
 
     windowSize(width, height) {

@@ -7,6 +7,8 @@ const Convenience = Me.imports.convenience;
 const SCHEMA_NAME = 'org.gnome.shell.extensions.dict';
 const ADDRESS_LIST = 'address-list';
 const ADDRESS_ACTIVE = 'address-active';
+const ENABLE_JAVASCRIPT = 'enable-javascript';
+const LOAD_IMAGE = 'load-image';
 
 const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ];
 let gsettings;
@@ -33,6 +35,11 @@ class buildUi {
             margin: 20, margin_top: 10
         });
         vbox.set_size_request(550, 350);
+
+        this.addBoldTextToBox("Web loading config", vbox);
+        vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
+        vbox.add(this.addEnableJS());
+        vbox.add(this.addLoadImage());
 
         this.addBoldTextToBox("Dictionary online address", vbox);
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
@@ -72,6 +79,32 @@ class buildUi {
         vbox.add(this.addressListBox);
 
         this.widget.add(vbox);
+    }
+
+    addEnableJS() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5 });
+        let setting_label = new Gtk.Label({ label: "Enable javascript", xalign: 0 });
+        this.settingEnableJS = new Gtk.Switch({ active: gsettings.get_boolean(ENABLE_JAVASCRIPT) });
+
+        this.settingEnableJS.connect('notify::active', (button) => { gsettings.set_boolean(ENABLE_JAVASCRIPT, button.active); });
+
+        hbox.pack_start(setting_label, true, true, 0);
+        hbox.add(this.settingEnableJS);
+
+        return hbox;
+    }
+
+    addLoadImage() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5 });
+        let setting_label = new Gtk.Label({ label: "Load image", xalign: 0 });
+        this.settingLoadImage = new Gtk.Switch({ active: gsettings.get_boolean(LOAD_IMAGE) });
+
+        this.settingLoadImage.connect('notify::active', (button) => { gsettings.set_boolean(LOAD_IMAGE, button.active); });
+
+        hbox.pack_start(setting_label, true, true, 0);
+        hbox.add(this.settingLoadImage);
+
+        return hbox;
     }
 
     addRemoveButton() {
@@ -170,7 +203,7 @@ class buildUi {
     }
 
     addBoldTextToBox(text, box) {
-        let txt = new Gtk.Label({xalign: 0});
+        let txt = new Gtk.Label({xalign: 0, margin_top: 20});
         txt.set_markup('<b>' + text + '</b>');
         txt.set_line_wrap(true);
         box.add(txt);
