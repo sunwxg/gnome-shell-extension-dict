@@ -15,6 +15,7 @@ const Main = imports.ui.main;
 const MessageTray = imports.ui.messageTray;
 const Tweener = imports.ui.tweener;
 const PanelMenu = imports.ui.panelMenu;
+const Conf = imports.misc.config;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -69,6 +70,14 @@ const DBusIface = '<node> \
 </interface> \
 </node>';
 const DBusProxy = Gio.DBusProxy.makeProxyWrapper(DBusIface);
+
+function isLess30() {
+    let version = Conf.PACKAGE_VERSION.split('.');
+    if (version[0] == 3 && version[1] < 30)
+        return true;
+
+    return false;
+}
 
 class Flag {
     constructor() {
@@ -127,8 +136,12 @@ class Flag {
                                                            this.checkStClipboard.bind(this));
             GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
         } else {
-            let display = Gdk.Display.get_default();
-            this.clipboard = Gtk.Clipboard.get_default(display);
+            if (isLess30()){
+                let display = Gdk.Display.get_default();
+                this.clipboard = Gtk.Clipboard.get_default(display);
+            } else {
+                this.clipboard = Gtk.Clipboard.get('PRIMARY');
+            }
             this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
         }
 
