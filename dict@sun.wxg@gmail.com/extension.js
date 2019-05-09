@@ -29,6 +29,8 @@ const DICT_SCHEMA = 'org.gnome.shell.extensions.dict';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
+const ENABLE_JAVASCRIPT = 'enable-javascript';
+const LOAD_IMAGE = 'load-image';
 
 const BUS_NAME = 'org.gnome.Dict';
 const OBJECT_PATH = '/org/gnome/Dict';
@@ -41,6 +43,8 @@ const DictIface = '<node> \
 </method> \
 <method name="linkUpdate"> \
     <arg type="s" direction="in"/> \
+    <arg type="b" direction="in"/> \
+    <arg type="b" direction="in"/> \
 </method> \
 <method name="windowSize"> \
     <arg type="i" direction="in"/> \
@@ -77,6 +81,10 @@ class Flag {
 
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
         this.addressListId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
+                                                     this.updateLink.bind(this));
+        this.addressListId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
+                                                     this.updateLink.bind(this));
+        this.addressListId = this._gsettings.connect("changed::" + LOAD_IMAGE,
                                                      this.updateLink.bind(this));
         this.updateLink();
 
@@ -119,7 +127,8 @@ class Flag {
                                                            this.checkStClipboard.bind(this));
             GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
         } else {
-            this.clipboard = Gtk.Clipboard.get('PRIMARY');
+            let display = Gdk.Display.get_default();
+            this.clipboard = Gtk.Clipboard.get_default(display);
             this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
         }
 
@@ -201,7 +210,7 @@ class Flag {
                            Gio.SubprocessFlags.INHERIT_FDS);
 
         Mainloop.timeout_add(500, () => {
-            this.dictProxy.linkUpdateRemote(this.link);
+            this.dictProxy.linkUpdateRemote(this.link, this.enableJS, this.loadImage);
 
             let width = this._gsettings.get_int(WINDOW_WIDTH);
             let height = this._gsettings.get_int(WINDOW_HEIGHT);
@@ -257,7 +266,10 @@ class Flag {
 
     updateLink() {
         this.link = this._gsettings.get_string(ADDRESS_ACTIVE);
-        this.dictProxy.linkUpdateRemote(this.link);
+        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
+        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
+
+        this.dictProxy.linkUpdateRemote(this.link, this.enableJS, this.loadImage);
     }
 
     windowSizeChanged(proxy, senderName, [width, height]) {
