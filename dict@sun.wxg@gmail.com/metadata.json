@@ -1,6 +1,6 @@
 {
-  "description": "Translate word on the screen.",
-  "name": "Dictionary on line",
+  "description": "Translate word on the screen.\nDefault web address is www.bing.com/dict, you can add the web address for your own language. Also you can contribute your web address to my github repo.",
+  "name": "Screen word translate",
   "original-authors": "sun.wxg@gmail.com",
   "shell-version": [ "3.26", "3.28", "3.30" ],
   "url": "https://github.com/sunwxg/gnome-shell-extension-dict",
