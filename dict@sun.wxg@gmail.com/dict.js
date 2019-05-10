@@ -49,8 +49,12 @@ class Dict {
         this.url = WEB_SITE;
         this.enableJS = false;
         this.loadImage = false;
-        this.words = words;
         this.active = false;
+
+        if (words != null)
+            this.words = words;
+        else
+            this.words = 'welcome';
 
         this.path = GLib.path_get_dirname(System.programInvocationName);
 
