@@ -1,8 +1,8 @@
 {
-  "description": "dict",
-  "name": "dict",
+  "description": "Translate word on the screen.",
+  "name": "Dictionary on line",
   "original-authors": "sun.wxg@gmail.com",
   "shell-version": [ "3.26", "3.28", "3.30" ],
-  "url": "https://github.com/sunwxg/gnome-shell-extension-",
+  "url": "https://github.com/sunwxg/gnome-shell-extension-dict",
   "uuid": "dict@sun.wxg@gmail.com"
 }
