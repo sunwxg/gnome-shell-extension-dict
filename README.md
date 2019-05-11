@@ -10,4 +10,4 @@ restart system
 ### From gnome extensions website
 
 
-![screenshot](/Screenshot.png)
+![screenshot](/dict.png)
