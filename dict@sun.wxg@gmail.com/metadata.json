@@ -1,5 +1,5 @@
 {
-  "description": "Translate word on the screen.\nDefault web address is www.bing.com/dict, you can add the web address for your own language. Also you can contribute your web address to my github repo.",
+  "description": "Translate word on the screen.\nDefault web address is www.bing.com/dict, you can add the web address for your own language. Also you can contribute your web address to my github repo.\nUse hotkey Ctrl+Alt+j to toggle the function",
   "name": "Screen word translate",
   "original-authors": "sun.wxg@gmail.com",
   "shell-version": [ "3.26", "3.28", "3.30" ],

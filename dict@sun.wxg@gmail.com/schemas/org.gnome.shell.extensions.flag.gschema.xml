@@ -1,5 +1,17 @@
 <schemalist gettext-domain="gnome-shell-extensions">
   <schema id="org.gnome.shell.extensions.dict" path="/org/gnome/shell/extensions/dict/">
+    <key name="hotkey" type="as">
+      <default><![CDATA[['<Control><Alt>j']]]></default>
+      <summary>Key to trigger on and off</summary>
+      <description>
+      </description>
+    </key>
+    <key name="trigger-state" type="b">
+      <default>true</default>
+      <summary>Function is on or off</summary>
+      <description>
+      </description>
+    </key>
     <key name="window-width" type="i">
       <default>500</default>
       <summary>Window width</summary>

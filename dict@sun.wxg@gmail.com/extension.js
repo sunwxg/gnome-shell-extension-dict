@@ -6,6 +6,7 @@ const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const St = imports.gi.St;
 const Meta = imports.gi.Meta;
+const Shell = imports.gi.Shell;
 const Mainloop = imports.mainloop;
 
 const Gettext = imports.gettext.domain('gnome-shell-extensions');
@@ -27,6 +28,8 @@ const CHECK_CLIPBOARD_TIMEOUT = 500; // milliseconds
 const FLAG_DELAY = 1500;
 
 const DICT_SCHEMA = 'org.gnome.shell.extensions.dict';
+const HOTKEY = 'hotkey';
+const TRIGGER_STATE = 'trigger-state';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
@@ -95,13 +98,15 @@ class Flag {
                                                      this.updateLink.bind(this));
         this.addressListId = this._gsettings.connect("changed::" + LOAD_IMAGE,
                                                      this.updateLink.bind(this));
-        this.updateLink();
-
         try {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
             this.createDict();
         }
+
+        this.updateLink();
+
+        this.trigger = this._gsettings.get_boolean(TRIGGER_STATE);
 
         this.actor = new St.BoxLayout({ reactive: true,
                                     can_focus: true,
@@ -147,6 +152,8 @@ class Flag {
 
         this.removeNotificaionId = global.display.connect('window-demands-attention',
                                                           this._onWindowDemandsAttention.bind(this));
+
+        this.addKeybinding();
     }
 
     checkStClipboard() {
@@ -234,6 +241,9 @@ class Flag {
     }
 
     showFlag() {
+        if (!this.trigger)
+            return;
+
         let [x, y, mod] =global.get_pointer();
 
         if ((y - 50) < 0)
@@ -290,6 +300,19 @@ class Flag {
         this._gsettings.set_int(WINDOW_HEIGHT, height);
     }
 
+    addKeybinding() {
+        let ModeType = Shell.hasOwnProperty('ActionMode') ?
+                       Shell.ActionMode : Shell.KeyBindingMode;
+
+        Main.wm.addKeybinding(HOTKEY,
+                              this._gsettings,
+                              Meta.KeyBindingFlags.NONE,
+                              ModeType.ALL,
+                              () => { this.trigger = !this.trigger;
+                                      this._gsettings.set_boolean(TRIGGER_STATE, this.trigger);
+                              });
+    }
+
     getWM() {
         if (global.screen)
             return global.screen;
@@ -298,6 +321,8 @@ class Flag {
     }
 
     destroy(){
+        Main.wm.removeKeybinding(HOTKEY);
+
         if (this._flagWatchId) {
             Mainloop.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
