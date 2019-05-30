@@ -7,6 +7,7 @@ const Gdk = imports.gi.Gdk;
 const St = imports.gi.St;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
+const GObject = imports.gi.GObject;
 const Mainloop = imports.mainloop;
 
 const Gettext = imports.gettext.domain('gnome-shell-extensions');
@@ -383,9 +384,10 @@ class Flag {
     }
 }
 
+var MenuButton = GObject.registerClass(
 class MenuButton extends PanelMenu.Button {
-    constructor() {
-        super(0.0, _("Flag"));
+    _init() {
+        super._init(0.0, _('Dict flag'));
 
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
         this.dictActive = false;
@@ -433,7 +435,7 @@ class MenuButton extends PanelMenu.Button {
 
         super.destroy();
     }
-}
+});
 
 let flag;
 let menuButton;
