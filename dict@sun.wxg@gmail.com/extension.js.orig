@@ -6,7 +6,7 @@ const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const St = imports.gi.St;
 const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
+const GObject = imports.gi.GObject;
 const Mainloop = imports.mainloop;
 
 const Gettext = imports.gettext.domain('gnome-shell-extensions');
@@ -16,7 +16,6 @@ const Main = imports.ui.main;
 const MessageTray = imports.ui.messageTray;
 const Tweener = imports.ui.tweener;
 const PanelMenu = imports.ui.panelMenu;
-const Conf = imports.misc.config;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
@@ -28,13 +27,9 @@ const CHECK_CLIPBOARD_TIMEOUT = 500; // milliseconds
 const FLAG_DELAY = 1500;
 
 const DICT_SCHEMA = 'org.gnome.shell.extensions.dict';
-const HOTKEY = 'hotkey';
-const TRIGGER_STATE = 'trigger-state';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
-const ENABLE_JAVASCRIPT = 'enable-javascript';
-const LOAD_IMAGE = 'load-image';
 
 const BUS_NAME = 'org.gnome.Dict';
 const OBJECT_PATH = '/org/gnome/Dict';
@@ -47,8 +42,6 @@ const DictIface = '<node> \
 </method> \
 <method name="linkUpdate"> \
     <arg type="s" direction="in"/> \
-    <arg type="b" direction="in"/> \
-    <arg type="b" direction="in"/> \
 </method> \
 <method name="windowSize"> \
     <arg type="i" direction="in"/> \
@@ -74,14 +67,6 @@ const DBusIface = '<node> \
 </node>';
 const DBusProxy = Gio.DBusProxy.makeProxyWrapper(DBusIface);
 
-function isLess30() {
-    let version = Conf.PACKAGE_VERSION.split('.');
-    if (version[0] == 3 && version[1] < 30)
-        return true;
-
-    return false;
-}
-
 class Flag {
     constructor() {
         this.dictProxy = new DictProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH);
@@ -94,19 +79,13 @@ class Flag {
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
         this.addressListId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
                                                      this.updateLink.bind(this));
-        this.addressListId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
-                                                     this.updateLink.bind(this));
-        this.addressListId = this._gsettings.connect("changed::" + LOAD_IMAGE,
-                                                     this.updateLink.bind(this));
+        this.updateLink();
+
         try {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
             this.createDict();
         }
-
-        this.updateLink();
-
-        this.trigger = this._gsettings.get_boolean(TRIGGER_STATE);
 
         this.actor = new St.BoxLayout({ reactive: true,
                                     can_focus: true,
@@ -141,19 +120,13 @@ class Flag {
                                                            this.checkStClipboard.bind(this));
             GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
         } else {
-            if (isLess30()){
-                let display = Gdk.Display.get_default();
-                this.clipboard = Gtk.Clipboard.get_default(display);
-            } else {
-                this.clipboard = Gtk.Clipboard.get('PRIMARY');
-            }
+            let display = Gdk.Display.get_default();
+            this.clipboard = Gtk.Clipboard.get_default(display);
             this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
         }
 
         this.removeNotificaionId = global.display.connect('window-demands-attention',
                                                           this._onWindowDemandsAttention.bind(this));
-
-        this.addKeybinding();
     }
 
     checkStClipboard() {
@@ -230,7 +203,7 @@ class Flag {
                            Gio.SubprocessFlags.INHERIT_FDS);
 
         Mainloop.timeout_add(500, () => {
-            this.dictProxy.linkUpdateRemote(this.link, this.enableJS, this.loadImage);
+            this.dictProxy.linkUpdateRemote(this.link);
 
             let width = this._gsettings.get_int(WINDOW_WIDTH);
             let height = this._gsettings.get_int(WINDOW_HEIGHT);
@@ -241,9 +214,6 @@ class Flag {
     }
 
     showFlag() {
-        if (!this.trigger)
-            return;
-
         let [x, y, mod] =global.get_pointer();
 
         if ((y - 50) < 0)
@@ -289,28 +259,12 @@ class Flag {
 
     updateLink() {
         this.link = this._gsettings.get_string(ADDRESS_ACTIVE);
-        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
-        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
-
-        this.dictProxy.linkUpdateRemote(this.link, this.enableJS, this.loadImage);
+        this.dictProxy.linkUpdateRemote(this.link);
     }
 
     windowSizeChanged(proxy, senderName, [width, height]) {
         this._gsettings.set_int(WINDOW_WIDTH, width);
         this._gsettings.set_int(WINDOW_HEIGHT, height);
-    }
-
-    addKeybinding() {
-        let ModeType = Shell.hasOwnProperty('ActionMode') ?
-                       Shell.ActionMode : Shell.KeyBindingMode;
-
-        Main.wm.addKeybinding(HOTKEY,
-                              this._gsettings,
-                              Meta.KeyBindingFlags.NONE,
-                              ModeType.ALL,
-                              () => { this.trigger = !this.trigger;
-                                      this._gsettings.set_boolean(TRIGGER_STATE, this.trigger);
-                              });
     }
 
     getWM() {
@@ -321,8 +275,6 @@ class Flag {
     }
 
     destroy(){
-        Main.wm.removeKeybinding(HOTKEY);
-
         if (this._flagWatchId) {
             Mainloop.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
@@ -356,49 +308,26 @@ class Flag {
     }
 }
 
+var MenuButton = GObject.registerClass(
 class MenuButton extends PanelMenu.Button {
-    constructor() {
-        super(0.0, _("Flag"));
+    _init() {
+        super._init(0.0, _('Arrange Windows'));
 
-        this._gsettings = Convenience.getSettings(DICT_SCHEMA);
         this.dictActive = false;
 
-        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(Me.path + '/icons/dict.png') });
-        this.iconEnable = new St.Icon({ gicon: gicon,
+        let gicon = new Gio.FileIcon({
+                    file: Gio.File.new_for_path(Me.path + '/icons/flag.png') });
+        let icon = new St.Icon({ gicon: gicon,
                                  style_class: 'system-status-icon' });
-
-        gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(Me.path + '/icons/dict-disable.png') });
-        this.iconDisable = new St.Icon({ gicon: gicon,
-                                 style_class: 'system-status-icon' });
-
-        this._addIcon();
+        this.actor.add_child(icon);
 
         this.actor.connect('button-press-event', this._onButtonPress.bind(this));
-
-        this.iconId = this._gsettings.connect('changed::' + TRIGGER_STATE, this._addIcon.bind(this));
-    }
-
-    _addIcon() {
-        let trigger = this._gsettings.get_boolean(TRIGGER_STATE);
-        if (trigger) {
-            this.actor.remove_child(this.iconDisable);
-            this.actor.add_child(this.iconEnable);
-        } else {
-            this.actor.remove_child(this.iconEnable);
-            this.actor.add_child(this.iconDisable);
-        }
     }
 
     _onButtonPress(actor, event) {
         flag.hideDict();
     }
-
-    destroy() {
-        this._gsettings.disconnect(this.iconId);
-
-        super.destroy();
-    }
-}
+});
 
 let flag;
 let menuButton;
