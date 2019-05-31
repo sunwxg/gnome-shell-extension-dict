@@ -37,13 +37,13 @@
       </description>
     </key>
     <key name="enable-javascript" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Enable javascript</summary>
       <description>
       </description>
     </key>
     <key name="load-image" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Load image</summary>
       <description>
       </description>
