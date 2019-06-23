@@ -36,6 +36,12 @@ class buildUi {
         });
         vbox.set_size_request(550, 350);
 
+        this.addBoldTextToBox("Shortcut Key", vbox);
+        vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
+        let info = new Gtk.Label({xalign: 0, margin_top: 10});
+        info.set_markup("Use key <b>Ctrl+Alt+j</b> to toggle popup icon function");
+        vbox.add(info);
+
         this.addBoldTextToBox("Web loading config", vbox);
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
         vbox.add(this.addEnableJS());
