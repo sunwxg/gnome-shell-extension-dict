@@ -12,6 +12,12 @@
       <description>
       </description>
     </key>
+    <key name="top-icon" type="b">
+      <default>true</default>
+      <summary>Show top icon</summary>
+      <description>
+      </description>
+    </key>
     <key name="window-width" type="i">
       <default>500</default>
       <summary>Window width</summary>

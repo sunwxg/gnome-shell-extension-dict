@@ -9,6 +9,7 @@ const ADDRESS_LIST = 'address-list';
 const ADDRESS_ACTIVE = 'address-active';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
+const TOP_ICON = 'top-icon';
 
 const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ];
 let gsettings;
@@ -36,11 +37,23 @@ class buildUi {
         });
         vbox.set_size_request(550, 350);
 
-        this.addBoldTextToBox("Shortcut Key", vbox);
-        vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
-        let info = new Gtk.Label({xalign: 0, margin_top: 10});
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10 });
+        let info = new Gtk.Label({xalign: 0});
+        info.set_markup("<b>Shortcut Key</b>");
+        hbox.pack_start(info, true, true, 0);
+        info = new Gtk.Label({xalign: 1});
         info.set_markup("Use key <b>Ctrl+Alt+j</b> to toggle popup icon function");
-        vbox.add(info);
+        hbox.add(info);
+        vbox.add(hbox);
+
+        hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10 });
+        info = new Gtk.Label({xalign: 0});
+        info.set_markup("<b>Show top icon</b>");
+        hbox.pack_start(info, true, true, 0);
+        let showTopIcon = new Gtk.Switch({ active: gsettings.get_boolean(TOP_ICON) });
+        showTopIcon.connect('notify::active', (button) => { gsettings.set_boolean(TOP_ICON, button.active); });
+        hbox.add(showTopIcon);
+        vbox.add(hbox);
 
         this.addBoldTextToBox("Web loading config", vbox);
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
