@@ -50,28 +50,9 @@ class buildUi {
         this.addBoldTextToBox("Dictionary online address", vbox);
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
 
-        let addressBox = new Gtk.Box({
-            orientation: Gtk.Orientation.VERTICAL,
-        });
-
-
-        this.addressListBox = new Gtk.ListBox({
-            margin_top: 10,
-        });
-
-        ADDRESS.forEach( (a) => {
-            this.addressListBox.add(this.addressRow(a, true));
-        });
-
-        let addressList = [];
-        gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
-            if (a != "")
-                addressList.push(a);
-        });
-
-        addressList.forEach( (a) => {
-            this.addressListBox.add(this.addressRow(a, false));
-        });
+        this.addressListBox = this.addAddressListBox();
+        vbox.add(this.addRemoveButton());
+        vbox.add(this.addressListBox);
 
         let addressActive = gsettings.get_string(ADDRESS_ACTIVE);
         this.addressListBox.get_children().forEach( (row) => {
@@ -80,9 +61,6 @@ class buildUi {
                 check.active = true;
             }
         });
-
-        vbox.add(this.addRemoveButton());
-        vbox.add(this.addressListBox);
 
         this.widget.add(vbox);
     }
@@ -134,6 +112,28 @@ class buildUi {
         hbox.pack_start(info, false, false, 5);
 
         return hbox;
+    }
+
+    addAddressListBox() {
+        let addressListBox = new Gtk.ListBox({
+            margin_top: 10,
+        });
+
+        ADDRESS.forEach( (a) => {
+            addressListBox.add(this.addressRow(a, true));
+        });
+
+        let addressList = [];
+        gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
+            if (a != "")
+                addressList.push(a);
+        });
+
+        addressList.forEach( (a) => {
+            addressListBox.add(this.addressRow(a, false));
+        });
+
+        return addressListBox;
     }
 
     addClicked() {
