@@ -35,6 +35,7 @@ const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
+const TOP_ICON = 'top-icon';
 
 const BUS_NAME = 'org.gnome.Dict';
 const OBJECT_PATH = '/org/gnome/Dict';
@@ -372,10 +373,12 @@ class MenuButton extends PanelMenu.Button {
                                  style_class: 'system-status-icon' });
 
         this._addIcon();
+        this._showIcon();
 
         this.actor.connect('button-press-event', this._onButtonPress.bind(this));
 
         this.iconId = this._gsettings.connect('changed::' + TRIGGER_STATE, this._addIcon.bind(this));
+        this.showIconId = this._gsettings.connect('changed::' + TOP_ICON, this._showIcon.bind(this));
     }
 
     _addIcon() {
@@ -389,12 +392,18 @@ class MenuButton extends PanelMenu.Button {
         }
     }
 
+    _showIcon() {
+        let showIcon = this._gsettings.get_boolean(TOP_ICON);
+        this.actor.visible = showIcon;
+    }
+
     _onButtonPress(actor, event) {
         flag.hideDict();
     }
 
     destroy() {
         this._gsettings.disconnect(this.iconId);
+        this._gsettings.disconnect(this.showIconId);
 
         super.destroy();
     }
