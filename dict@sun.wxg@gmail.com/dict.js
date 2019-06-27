@@ -7,6 +7,9 @@ const System = imports.system;
 const GLib = imports.gi.GLib;
 const Webkit = imports.gi.WebKit2;
 
+imports.searchPath.push(GLib.path_get_dirname(System.programInvocationName));
+const Util = imports.util;
+
 const WEB_SITE = 'https://www.bing.com/dict/search?q=%WORD&mkt=zh-cn';
 
 const DBusIface = '<node> \
@@ -44,6 +47,19 @@ const DictIface = '<node> \
 </interface> \
 </node>';
 
+const DICT_SCHEMA = 'org.gnome.shell.extensions.dict';
+const HOTKEY = 'hotkey';
+const TRIGGER_STATE = 'trigger-state';
+const WINDOW_WIDTH = 'window-width';
+const WINDOW_HEIGHT = 'window-height';
+const ADDRESS_ACTIVE = 'address-active';
+const ENABLE_JAVASCRIPT = 'enable-javascript';
+const LOAD_IMAGE = 'load-image';
+const TOP_ICON = 'top-icon';
+const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
+const LANGUAGE = 'language';
+const ENABLE_WEB = 'enable-web';
+
 class Dict {
     constructor(words) {
         this.url = WEB_SITE;
@@ -56,6 +72,8 @@ class Dict {
         else
             this.words = 'welcome';
 
+        this._gsettings = Util.getSettings(DICT_SCHEMA);
+
         this.path = GLib.path_get_dirname(System.programInvocationName);
 
         this.application = new Gtk.Application({application_id: "org.gnome.Dict"});
@@ -67,6 +85,18 @@ class Dict {
         Gio.DBus.session.own_name('org.gnome.Dict',
                                   Gio.BusNameOwnerFlags.REPLACE,
                                   null, null);
+
+        this.enableTransShell = this._gsettings.get_boolean(ENABLE_TRANSLATE_SHELL);
+        this.enableTransShellId = this._gsettings.connect("changed::" + ENABLE_TRANSLATE_SHELL,
+                                                          this._updateNoteBook.bind(this));
+
+        this.language = this._gsettings.get_string(LANGUAGE);
+        this.languageId = this._gsettings.connect("changed::" + LANGUAGE,
+                                                  () => { this.language = this._gsettings.get_string(LANGUAGE); });
+
+        this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
+        this.enableWebId = this._gsettings.connect("changed::" + ENABLE_WEB,
+                                                   this._updateNoteBook.bind(this));
     }
 
     _onActivate() {
@@ -109,6 +139,13 @@ class Dict {
 
         headerBar.pack_end(button);
 
+        this.shell = new Gtk.Label();
+        this.shell.set_xalign(0);
+        this.shell.set_yalign(0);
+        let scroll_window = new Gtk.ScrolledWindow({ expand: true });
+        scroll_window.add(this.shell);
+        this.shell.scroll_window = scroll_window;
+
         let manager = new Webkit.WebsiteDataManager({base_cache_directory: '/dev/null',
                                                      base_data_directory: '/dev/null',
                                                      disk_cache_directory: '/dev/null',
@@ -137,17 +174,10 @@ class Dict {
 
         this.web_view.load_uri(this._getUrl());
 
-        let scroll_window = new Gtk.ScrolledWindow({ expand: true });
-        scroll_window.add(this.web_view);
+        this.notebook = new Gtk.Notebook({});
+        this.window.add(this.notebook);
 
-        let vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL,
-                                 vexpand: true,
-        });
-
-        vbox.add(scroll_window);
-
-        this.window.add(vbox);
-        this._label = new Gtk.Label({ label: "Welcome to GNOME, too!" });
+        this._updateNoteBook();
     }
 
     windowSizeChanged() {
@@ -189,19 +219,72 @@ class Dict {
         return url;
     }
 
+    _shellTranslateWord(word) {
+        let cmd = "trans -t " + this.language + " --show-languages n --no-ansi " + word;
+        try {
+            let [result, stdout, stderr, status] = GLib.spawn_command_line_sync(cmd);
+
+            let text = Utf8ArrayToStr(stdout);
+
+            this.shell.set_markup(text);
+
+        } catch (e) {
+            this.shell.set_text("Error: " + e.message);
+        }
+    }
+
+    _updateNoteBook() {
+        this.enableTransShell = this._gsettings.get_boolean(ENABLE_TRANSLATE_SHELL);
+        this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
+
+        this.notebook.remove(this.web_view);
+        this.notebook.remove(this.shell.scroll_window);
+
+        let label;
+        if (this.enableTransShell) {
+            label =new Gtk.Label();
+            label.set_text('translate shell');
+            this.notebook.append_page(this.shell.scroll_window, label);
+            this.notebook.child_set_property(this.shell.scroll_window, 'tab-expand', true);
+        }
+
+        if (this.enableWeb) {
+            label =new Gtk.Label();
+            label.set_text('web');
+            this.notebook.append_page(this.web_view, label);
+            this.notebook.child_set_property(this.web_view, 'tab-expand', true);
+        }
+
+        if (this.notebook.get_n_pages() < 1) {
+            this.notebook.add(this.shell.scroll_window);
+            this.shell.set_text('');
+        }
+
+        if (this.notebook.get_n_pages() < 2)
+            this.notebook.set_show_tabs(false);
+        else
+            this.notebook.set_show_tabs(true);
+    }
+
     translateWords(words, x, y) {
         this.words = words;
         this.x = x;
         this.y = y;
 
-        this.web_view.load_uri(this._getUrl(this.words));
-        this.setWindowPosition();
+        if (this.enableWeb)
+            this.web_view.load_uri(this._getUrl(this.words));
+
+        if (this.enableTransShell)
+            this._shellTranslateWord(words);
+
+        this.notebook.prev_page();
+        this._setWindowPosition();
         this.window.show_all();
         this.window.activate();
         this.active = true;
     }
 
-    setWindowPosition() {
+    _setWindowPosition() {
         let screen = this.window.get_screen();
         let display = screen.get_display();
         let monitor = display.get_monitor_at_point(this.x, this.y);
@@ -257,6 +340,39 @@ class Dict {
         }
     }
 };
+
+function Utf8ArrayToStr(array) {
+    var out, i, len, c;
+    var char2, char3;
+
+    out = "";
+    len = array.length;
+    i = 0;
+    while (i < len) {
+        c = array[i++];
+        switch (c >> 4)
+        {
+            case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+                // 0xxxxxxx
+                out += String.fromCharCode(c);
+                break;
+            case 12: case 13:
+                // 110x xxxx   10xx xxxx
+                char2 = array[i++];
+                out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+                break;
+            case 14:
+                // 1110 xxxx  10xx xxxx  10xx xxxx
+                char2 = array[i++];
+                char3 = array[i++];
+                out += String.fromCharCode(((c & 0x0F) << 12) |
+                        ((char2 & 0x3F) << 6) |
+                        ((char3 & 0x3F) << 0));
+                break;
+        }
+    }
+    return out;
+}
 
 let words = null;
 

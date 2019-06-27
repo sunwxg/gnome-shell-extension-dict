@@ -3,6 +3,7 @@ const GLib = imports.gi.GLib;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
+const LANGUAGES_LIST = Me.imports.language.LANGUAGES_LIST;
 
 const SCHEMA_NAME = 'org.gnome.shell.extensions.dict';
 const ADDRESS_LIST = 'address-list';
@@ -10,8 +11,11 @@ const ADDRESS_ACTIVE = 'address-active';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
+const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
+const LANGUAGE = 'language';
+const ENABLE_WEB = 'enable-web';
 
-const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ];
+const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ]
 let gsettings;
 
 function init() {
@@ -46,40 +50,75 @@ class buildUi {
         hbox.add(info);
         vbox.add(hbox);
 
-        hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10 });
-        info = new Gtk.Label({xalign: 0});
-        info.set_markup("<b>Show top icon</b>");
-        hbox.pack_start(info, true, true, 0);
-        let showTopIcon = new Gtk.Switch({ active: gsettings.get_boolean(TOP_ICON) });
-        showTopIcon.connect('notify::active', (button) => { gsettings.set_boolean(TOP_ICON, button.active); });
-        hbox.add(showTopIcon);
-        vbox.add(hbox);
+        vbox.add(this.addItemSwitch("<b>Show top icon</b>", TOP_ICON, 20));
 
-        this.addBoldTextToBox("Web loading config", vbox);
+        vbox.add(this.addLanguageCombo());
+
+        vbox.add(this.addItemSwitch("<b>Enable translate-shell</b>", ENABLE_TRANSLATE_SHELL, 20));
+
+        vbox.add(this.addItemSwitch("<b>Enable Web translate</b>", ENABLE_WEB, 20));
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
         vbox.add(this.addEnableJS());
         vbox.add(this.addLoadImage());
 
-        this.addBoldTextToBox("Dictionary online address", vbox);
+        this.addBoldTextToBox("Web online address", vbox);
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
 
-        this.addressListBox = this.addAddressListBox();
-        vbox.add(this.addRemoveButton());
+        this.addressListBox = this.addAddressBox();
+        vbox.add(this.addAddButton());
         vbox.add(this.addressListBox);
 
         let addressActive = gsettings.get_string(ADDRESS_ACTIVE);
         this.addressListBox.get_children().forEach( (row) => {
-            let [check, entry] = row.get_child().get_children();
+            let [radio, entry] = row.get_children();
             if (entry.get_text() == addressActive) {
-                check.active = true;
+                radio.active = true;
             }
         });
 
         this.widget.add(vbox);
     }
 
+    addItemSwitch(string, key, margin) {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: margin});
+        let info = new Gtk.Label({xalign: 0});
+        info.set_markup(string);
+        hbox.pack_start(info, true, true, 0);
+        let button = new Gtk.Switch({ active: gsettings.get_boolean(key) });
+        button.connect('notify::active', (button) => { gsettings.set_boolean(key, button.active); });
+        hbox.add(button);
+        return hbox;
+    }
+
+    addLanguageCombo() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
+        let setting_label = new Gtk.Label({  xalign: 0 });
+        setting_label.set_markup("<b>Select target language</b>");
+        hbox.pack_start(setting_label, true, true, 0);
+        hbox.add(this.languageCombo());
+
+        return hbox;
+    }
+
+    languageCombo() {
+        let combo = new Gtk.ComboBoxText();
+        combo.set_entry_text_column(0);
+
+        for (let l in LANGUAGES_LIST) {
+            combo.append(l, LANGUAGES_LIST[l]);
+        }
+        combo.set_active_id(gsettings.get_string(LANGUAGE));
+
+        combo.connect('changed', () => {
+            gsettings.set_string(LANGUAGE, combo.get_active_id());
+            this.addressUpdate();
+        });
+
+        return combo;
+    }
+
     addEnableJS() {
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5 });
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_left: 10 });
         let setting_label = new Gtk.Label({ label: "Enable javascript", xalign: 0 });
         this.settingEnableJS = new Gtk.Switch({ active: gsettings.get_boolean(ENABLE_JAVASCRIPT) });
 
@@ -92,7 +131,7 @@ class buildUi {
     }
 
     addLoadImage() {
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5 });
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_left: 10});
         let setting_label = new Gtk.Label({ label: "Load image", xalign: 0 });
         this.settingLoadImage = new Gtk.Switch({ active: gsettings.get_boolean(LOAD_IMAGE) });
 
@@ -104,7 +143,7 @@ class buildUi {
         return hbox;
     }
 
-    addRemoveButton() {
+    addAddButton() {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL,
             margin_top: 10,
         });
@@ -113,12 +152,7 @@ class buildUi {
         let add = new Gtk.Button({ label: 'Add' });
         add.connect('clicked', this.addClicked.bind(this));
 
-        label = new Gtk.Label({ label: 'Remove' });
-        let remove = new Gtk.Button({ label: 'Remove' });
-        remove.connect('clicked', this.removeClicked.bind(this));
-
         hbox.pack_start(add, false, false, 5);
-        hbox.pack_start(remove, false, false, 5);
 
         let info = new Gtk.Label();
         info.set_markup("Use <b>%WORD</b> to replace the search word");
@@ -127,13 +161,17 @@ class buildUi {
         return hbox;
     }
 
-    addAddressListBox() {
-        let addressListBox = new Gtk.ListBox({
-            margin_top: 10,
-        });
+    addClicked() {
+        this.addressListBox.add(this.addressRow('http://', false));
+        this.addressListBox.show_all();
+    }
+
+    addAddressBox() {
+        let addressBox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, margin_top: 10 });
+        addressBox.add(this.addGoogleTranslate());
 
         ADDRESS.forEach( (a) => {
-            addressListBox.add(this.addressRow(a, true));
+            addressBox.add(this.addressRow(a, true));
         });
 
         let addressList = [];
@@ -143,63 +181,67 @@ class buildUi {
         });
 
         addressList.forEach( (a) => {
-            addressListBox.add(this.addressRow(a, false));
+            addressBox.add(this.addressRow(a, false));
         });
 
-        return addressListBox;
+        return addressBox;
     }
 
-    addClicked() {
-        this.addressListBox.add(this.addressRow('http://', false));
-        this.addressListBox.show_all();
+    addGoogleTranslate() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
+
+        let radioButton = new Gtk.RadioButton({ });
+        radioButton.isDefault = true;
+        radioButton.google = true;
+        radioButton.connect("toggled", this.addressUpdate.bind(this));
+        this.radioGroup = radioButton;
+        hbox.add(radioButton);
+
+        let info = new Gtk.Label({xalign: 0, margin_left: 10});
+        info.set_markup("Use google translate");
+        hbox.add(info);
+
+        return hbox;
     }
 
-    removeClicked() {
-        let row = this.addressListBox.get_selected_row();
-        if (!row)
-            return;
+    googleTranslateUrl() {
+        let language = gsettings.get_string(LANGUAGE);
+        let url = "https://translate.google.com/#view=home&op=translate&sl=auto&tl=" + language + "&text=%WORD";
 
-        if (row.isDefault)
-            return;
-
-        this.addressListBox.remove(row);
-
-        this.addressUpdate();
+        return url;
     }
 
     addressRow(address, isDefault) {
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
 
-        let check = new Gtk.CheckButton();
-        hbox.pack_start(check, false, false, 5);
-        check.id = check.connect('toggled', this.checkToggled.bind(this));
+        let radioButton = new Gtk.RadioButton({ group: this.radioGroup });
+        radioButton.isDefault = isDefault;
+        radioButton.connect("toggled", this.addressUpdate.bind(this));
+        hbox.pack_start(radioButton, false, false, 0);
 
-        let entry = new Gtk.Entry();
-        entry.set_text(address);
-        hbox.pack_end(entry, true, true, 5);
+        if (isDefault) {
+            let label = new Gtk.Label({xalign: 0});
+            label.selectable = true;
+            label.set_text(address);
+            hbox.pack_start(label, false, false, 10);
+        } else {
+            let entry = new Gtk.Entry({});
+            entry.set_text(address);
+            entry.connect('changed', this.addressUpdate.bind(this));
+            hbox.pack_start(entry, true, true, 10);
 
-        if (isDefault)
-            entry.editable = false;
+            let remove = new Gtk.Button();
+            remove.set_label("Remove");
+            remove.hbox = hbox;
+            remove.connect("clicked", this.removeClicked.bind(this));
+            hbox.pack_end(remove, false, false, 0);
+        }
 
-        let row = new Gtk.ListBoxRow({});
-        row.add(hbox);
-        row.isDefault = isDefault;
-
-        entry.connect('changed', this.addressUpdate.bind(this));
-        entry.connect("grab_focus", () => { row.emit("activate") });
-        return row;
+        return hbox;
     }
 
-    checkToggled(button) {
-        let rows = this.addressListBox.get_children();
-        rows.forEach( (row) => { let [check, entry] = row.get_child().get_children();
-            if (check != button) {
-                check.disconnect(check.id);
-                check.active = false;
-                check.id = check.connect('toggled', this.checkToggled.bind(this));
-            }
-        });
-
+    removeClicked(button) {
+        this.addressListBox.remove(button.hbox);
         this.addressUpdate();
     }
 
@@ -208,13 +250,18 @@ class buildUi {
         let addressActive;
         let rows = this.addressListBox.get_children();
         rows.forEach( (row) => {
-            let [check, entry] = row.get_child().get_children();
+            let [radio, entry] = row.get_children();
             let link = entry.get_text();
-            if (!row.isDefault)
+            if (!radio.isDefault) {
                 addressList.push(link);
+            }
 
-            if (check.active)
-                addressActive = link;
+            if (radio.active) {
+                if (radio.google)
+                    addressActive = this.googleTranslateUrl();
+                else
+                    addressActive = link;
+            }
         });
 
         gsettings.set_strv(ADDRESS_LIST, addressList);

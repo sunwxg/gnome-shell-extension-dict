@@ -18,6 +18,18 @@
       <description>
       </description>
     </key>
+    <key name="enable-translate-shell" type="b">
+      <default>false</default>
+      <summary>Use translate-shell</summary>
+      <description>
+      </description>
+    </key>
+    <key name="language" type="s">
+      <default>"auto"</default>
+      <summary>target language</summary>
+      <description>
+      </description>
+    </key>
     <key name="window-width" type="i">
       <default>500</default>
       <summary>Window width</summary>
@@ -39,6 +51,12 @@
     <key name="address-active" type="s">
       <default>"https://www.bing.com/dict/search=?q=%WORD&amp;mkt=zh-cn"</default>
       <summary>Active address</summary>
+      <description>
+      </description>
+    </key>
+    <key name="enable-web" type="b">
+      <default>true</default>
+      <summary>Enable web translate</summary>
       <description>
       </description>
     </key>
