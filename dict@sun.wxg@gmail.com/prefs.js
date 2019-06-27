@@ -247,7 +247,7 @@ class buildUi {
 
     addressUpdate() {
         let addressList = [];
-        let addressActive;
+        let addressActive = '';
         let rows = this.addressListBox.get_children();
         rows.forEach( (row) => {
             let [radio, entry] = row.get_children();
