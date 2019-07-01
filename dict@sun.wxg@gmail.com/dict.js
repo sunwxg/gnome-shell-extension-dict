@@ -10,7 +10,7 @@ const Webkit = imports.gi.WebKit2;
 imports.searchPath.push(GLib.path_get_dirname(System.programInvocationName));
 const Util = imports.util;
 
-const WEB_SITE = 'https://www.bing.com/dict/search?q=%WORD&mkt=zh-cn';
+const WEB_SITE = 'https://translate.google.com/#view=home&amp;op=translate&sl=auto&tl=auto&text=%WORD';
 
 const DBusIface = '<node> \
 <interface name="org.freedesktop.DBus"> \
@@ -122,22 +122,17 @@ class Dict {
         this.window.connect('configure-event', this.windowSizeChanged.bind(this));
 
         this.window.set_resizable(true);
-        this.window.set_size_request(600, 500);
-        this.width = 500;
-        this.height = 600;
+        this.width = this._gsettings.get_int(WINDOW_WIDTH);
+        this.height = this._gsettings.get_int(WINDOW_HEIGHT);
+        this.window.set_size_request(this.width, this.height);
 
         let headerBar = new Gtk.HeaderBar({ show_close_button: false,
                                             title: 'Dict', });
         this.window.set_titlebar(headerBar);
 
-        let button = new Gtk.ToggleButton({});
-        button.set_relief(Gtk.ReliefStyle.NONE);
-        button.connect('toggled', this.pinToggled.bind(this));
-
-        let image = Gtk.Image.new_from_file(this.path + '/icons/push-pin.png');
-        button.set_image(image);
-
-        headerBar.pack_end(button);
+        this.searchButton = this.addSearchButton();
+        headerBar.pack_start(this.searchButton);
+        headerBar.pack_end(this.pinToggleButton());
 
         this.shell = new Gtk.Label();
         this.shell.set_xalign(0);
@@ -174,10 +169,51 @@ class Dict {
 
         this.web_view.load_uri(this._getUrl());
 
+        let vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
+
+        this.searchEntry = new Gtk.SearchEntry();
+        this.searchEntry.set_no_show_all(true);
+        this.searchEntry.set_visible(false);
+        this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
+        vbox.pack_start(this.searchEntry, false, false, 0);
+
         this.notebook = new Gtk.Notebook({});
-        this.window.add(this.notebook);
+        vbox.pack_start(this.notebook, true, true, 0);
+
+        this.window.add(vbox);
 
         this._updateNoteBook();
+    }
+
+    addSearchButton() {
+        let button = new Gtk.ToggleButton({});
+        button.set_relief(Gtk.ReliefStyle.NONE);
+        button.connect('toggled', this.searchToggled.bind(this));
+
+        let image = Gtk.Image.new_from_icon_name('system-search-symbolic', Gtk.IconSize.BUTTON);
+        button.set_image(image);
+
+        return button;
+    }
+
+    searchToggled(button) {
+        this.searchEntry.visible = button.get_active();
+        this.searchEntry.grab_focus_without_selecting();
+    }
+
+    searchEntryActivate(entry) {
+        this.translateWords(entry.get_text(), null, null);
+    }
+
+    pinToggleButton() {
+        let button = new Gtk.ToggleButton({});
+        button.set_relief(Gtk.ReliefStyle.NONE);
+        button.connect('toggled', this.pinToggled.bind(this));
+
+        let image = Gtk.Image.new_from_file(this.path + '/icons/push-pin.png');
+        button.set_image(image);
+
+        return button;
     }
 
     windowSizeChanged() {
@@ -185,7 +221,9 @@ class Dict {
         if (this.width != width || this.height != height) {
             this.width = width;
             this.height = height;
-            this._impl.emit_signal('windowSizeChanged', GLib.Variant.new('(uu)', [width, height]));
+            this._gsettings.set_int(WINDOW_WIDTH, width);
+            this._gsettings.set_int(WINDOW_HEIGHT, height);
+            //this._impl.emit_signal('windowSizeChanged', GLib.Variant.new('(uu)', [width, height]));
         }
     }
 
@@ -268,8 +306,10 @@ class Dict {
 
     translateWords(words, x, y) {
         this.words = words;
-        this.x = x;
-        this.y = y;
+        if (x) {
+            this.x = x;
+            this.y = y;
+        }
 
         if (this.enableWeb)
             this.web_view.load_uri(this._getUrl(this.words));
@@ -278,7 +318,8 @@ class Dict {
             this._shellTranslateWord(words);
 
         this.notebook.prev_page();
-        this._setWindowPosition();
+        if (x)
+            this._setWindowPosition();
         this.window.show_all();
         this.window.activate();
         this.active = true;

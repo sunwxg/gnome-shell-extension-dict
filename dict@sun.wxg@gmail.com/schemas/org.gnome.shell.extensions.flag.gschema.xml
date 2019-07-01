@@ -49,7 +49,7 @@
       </description>
     </key>
     <key name="address-active" type="s">
-      <default>"https://www.bing.com/dict/search=?q=%WORD&amp;mkt=zh-cn"</default>
+      <default>"https://translate.google.com/#view=home&amp;op=translate&amp;sl=auto&amp;tl=auto&amp;text=%WORD"</default>
       <summary>Active address</summary>
       <description>
       </description>
