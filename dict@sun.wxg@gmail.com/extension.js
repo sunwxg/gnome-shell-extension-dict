@@ -235,7 +235,6 @@ class Flag {
 
             let width = this._gsettings.get_int(WINDOW_WIDTH);
             let height = this._gsettings.get_int(WINDOW_HEIGHT);
-            this.dictProxy.windowSizeRemote(width, height);
 
             return GLib.SOURCE_REMOVE;
         });

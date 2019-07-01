@@ -50,13 +50,15 @@ class buildUi {
         hbox.add(info);
         vbox.add(hbox);
 
-        vbox.add(this.addItemSwitch("<b>Show top icon</b>", TOP_ICON, 20));
+        vbox.add(this.addItemSwitch("<b>Show top icon</b>", TOP_ICON));
 
         vbox.add(this.addLanguageCombo());
 
-        vbox.add(this.addItemSwitch("<b>Enable translate-shell</b>", ENABLE_TRANSLATE_SHELL, 20));
+        vbox.add(this.addItemSwitch(
+            "<b>Enable translate-shell</b> (Install translate-shell package first)",
+            ENABLE_TRANSLATE_SHELL));
 
-        vbox.add(this.addItemSwitch("<b>Enable Web translate</b>", ENABLE_WEB, 20));
+        vbox.add(this.addItemSwitch("<b>Enable Web translate</b>", ENABLE_WEB));
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
         vbox.add(this.addEnableJS());
         vbox.add(this.addLoadImage());
@@ -79,14 +81,15 @@ class buildUi {
         this.widget.add(vbox);
     }
 
-    addItemSwitch(string, key, margin) {
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: margin});
+    addItemSwitch(string, key) {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 20});
         let info = new Gtk.Label({xalign: 0});
         info.set_markup(string);
-        hbox.pack_start(info, true, true, 0);
+        hbox.pack_start(info, false, false, 0);
+
         let button = new Gtk.Switch({ active: gsettings.get_boolean(key) });
         button.connect('notify::active', (button) => { gsettings.set_boolean(key, button.active); });
-        hbox.add(button);
+        hbox.pack_end(button, false, false, 0);
         return hbox;
     }
 
