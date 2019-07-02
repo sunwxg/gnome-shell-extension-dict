@@ -305,13 +305,14 @@ class Dict {
     }
 
     translateWords(words, x, y) {
+        let oldWord = this.words;
         this.words = words;
         if (x) {
             this.x = x;
             this.y = y;
         }
 
-        if (this.enableWeb)
+        if (this.enableWeb && oldWord != words)
             this.web_view.load_uri(this._getUrl(this.words));
 
         if (this.enableTransShell)
