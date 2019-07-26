@@ -10,7 +10,7 @@ const Webkit = imports.gi.WebKit2;
 imports.searchPath.push(GLib.path_get_dirname(System.programInvocationName));
 const Util = imports.util;
 
-const WEB_SITE = 'https://translate.google.com/#view=home&amp;op=translate&sl=auto&tl=auto&text=%WORD';
+const WEB_SITE = 'https://translate.google.com/#view=home&op=translate&sl=auto&tl=auto&text=%WORD';
 
 const DBusIface = '<node> \
 <interface name="org.freedesktop.DBus"> \
@@ -62,7 +62,6 @@ const ENABLE_WEB = 'enable-web';
 
 class Dict {
     constructor(words) {
-        this.url = WEB_SITE;
         this.enableJS = false;
         this.loadImage = false;
         this.active = false;
@@ -90,9 +89,18 @@ class Dict {
         this.enableTransShellId = this._gsettings.connect("changed::" + ENABLE_TRANSLATE_SHELL,
                                                           this._updateNoteBook.bind(this));
 
+        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
+        this.enableJSId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
+                                                  () => { this.enableJS= this._gsettings.get_boolean(ENABLE_JAVASCRIPT); });
+
+        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
+        this.loadImageId = this._gsettings.connect("changed::" + LOAD_IMAGE,
+                                                  () => { this.loadImage= this._gsettings.get_boolean(LOAD_IMAGE); });
+
         this.language = this._gsettings.get_string(LANGUAGE);
         this.languageId = this._gsettings.connect("changed::" + LANGUAGE,
                                                   () => { this.language = this._gsettings.get_string(LANGUAGE); });
+        this.url = "https://translate.google.com/#view=home&op=translate&sl=auto&tl=" + this.language + "&text=%WORD";
 
         this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
         this.enableWebId = this._gsettings.connect("changed::" + ENABLE_WEB,
@@ -158,14 +166,12 @@ class Dict {
         settings.set_auto_load_images(this.loadImage);
         this.web_view.set_settings(settings);
 
-        /*
-        this.web_view.connect('load_changed', (w, event) => {
-            if (event != Webkit.LoadEvent.FINISHED)
-                return;
+        //this.web_view.connect('load_changed', (w, event) => {
+            //if (event != Webkit.LoadEvent.FINISHED)
+                //return;
 
-            this.web_view.show();
-        });
-        */
+            //this.web_view.show();
+        //});
 
         this.web_view.load_uri(this._getUrl());
 
@@ -307,50 +313,17 @@ class Dict {
     translateWords(words, x, y) {
         let oldWord = this.words;
         this.words = words;
-        if (x) {
-            this.x = x;
-            this.y = y;
-        }
 
-        if (this.enableWeb && oldWord != words)
+        if (this.enableWeb && oldWord != words) {
             this.web_view.load_uri(this._getUrl(this.words));
+        }
 
         if (this.enableTransShell)
             this._shellTranslateWord(words);
 
         this.notebook.prev_page();
-        if (x)
-            this._setWindowPosition();
         this.window.show_all();
-        this.window.activate();
         this.active = true;
-    }
-
-    _setWindowPosition() {
-        let screen = this.window.get_screen();
-        let display = screen.get_display();
-        let monitor = display.get_monitor_at_point(this.x, this.y);
-        let workarea = monitor.get_workarea();
-
-        let windowX, windowY;
-        let [width, height] = this.window.get_size();
-        if ((this.x + width) <= (workarea.x + workarea.width)) {
-            windowX = this.x;
-        } else {
-            windowX = this.x - width;
-            if (windowX < 0)
-                windowX = 0;
-        }
-
-        if (((this.y - height / 2) >= workarea.y) && ((this.y + height / 2) <= (workarea.y + workarea.height))) {
-            windowY = this.y - height / 2;
-        } else if ((this.y - height / 2) < workarea.y) {
-            windowY = workarea.y;
-        } else {
-            windowY = workarea.y + workarea.height - height;
-        }
-
-        this.window.move(windowX, Math.floor(windowY));
     }
 
     linkUpdate(link, enableJS, loadImage) {
@@ -378,7 +351,7 @@ class Dict {
             this.active = false;
             this.window.hide();
         } else {
-            this.translateWords(this.words, this.x, this.y);
+            this.translateWords(this.words, null, null);
         }
     }
 };
