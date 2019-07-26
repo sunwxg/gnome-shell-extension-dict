@@ -207,37 +207,64 @@ class Flag {
         } catch (e) {
             this.createDict();
             let [x, y, mod] =global.get_pointer();
-            Mainloop.timeout_add(1000, () => {
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
                 this.dictProxy.translateWordsRemote(this.text, x, y);
                 return GLib.SOURCE_REMOVE});
+
             return;
         }
 
         let [x, y, mod] =global.get_pointer();
         this.dictProxy.translateWordsRemote(this.text, x, y);
 
+        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, this.moveWindow.bind(this));
+        GLib.Source.set_name_by_id(id, 'dict moveWindow');
+    }
+
+    moveWindow() {
         let currentWorkspace = this.getWM().get_active_workspace();
         let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
         for (let i = 0; i < windows.length; i++) {
-            if (windows[i].title == 'Dict') {
+            if (windows[i].title == 'Dict' && windows[i].has_focus()) {
                 windows[i].change_workspace(currentWorkspace);
-                windows[i].activate(global.get_current_time());
+                let [x, y] = this.moveToPosition(windows[i]);
+                windows[i].move_frame(true, x, y);
+                return GLib.SOURCE_REMOVE;
             }
         }
+
+        return GLib.SOURCE_CONTINUE;
+    }
+
+    moveToPosition(window) {
+        let workarea = window.get_work_area_current_monitor();
+
+        let windowX, windowY;
+        let [x, y, mod] =global.get_pointer();
+        let frame = window.get_frame_rect();
+        if ((x + frame.width) <= (workarea.x + workarea.width)) {
+            windowX = x;
+        } else {
+            windowX = x - frame.width;
+            if (windowX < 0)
+                windowX = 0;
+        }
+
+        if (((y - frame.height / 2) >= workarea.y) && ((y + frame.height / 2) <= (workarea.y + workarea.height))) {
+            windowY = y - frame.height / 2;
+        } else if ((y - frame.height / 2) < workarea.y) {
+            windowY = workarea.y;
+        } else {
+            windowY = workarea.y + workarea.height - frame.height;
+        }
+
+        return [windowX, Math.floor(windowY)];
     }
 
     createDict() {
-        Gio.Subprocess.new([Me.imports.searchPath + '/dict.js'],
-                           Gio.SubprocessFlags.INHERIT_FDS);
-
-        Mainloop.timeout_add(500, () => {
-            this.dictProxy.linkUpdateRemote(this.link, this.enableJS, this.loadImage);
-
-            let width = this._gsettings.get_int(WINDOW_WIDTH);
-            let height = this._gsettings.get_int(WINDOW_HEIGHT);
-
-            return GLib.SOURCE_REMOVE;
-        });
+        let process = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.INHERIT_FDS);
+        process.set_flags(Gio.SubprocessFlags.INHERIT_FDS);
+        process.spawnv([Me.imports.searchPath + '/dict.js']);
     }
 
     showFlag() {
