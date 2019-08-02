@@ -75,6 +75,8 @@ class Dict {
 
         this.path = GLib.path_get_dirname(System.programInvocationName);
 
+        this.loadHistory();
+
         this.application = new Gtk.Application({application_id: "org.gnome.Dict"});
         this.application.connect('activate', this._onActivate.bind(this));
         this.application.connect('startup', this._onStartup.bind(this));
@@ -134,14 +136,46 @@ class Dict {
         this.height = this._gsettings.get_int(WINDOW_HEIGHT);
         this.window.set_size_request(this.width, this.height);
 
-        let headerBar = new Gtk.HeaderBar({ show_close_button: false,
-                                            title: 'Dict', });
-        this.window.set_titlebar(headerBar);
+        this.builder = new Gtk.Builder();
+        this.builder.add_from_file(this.path + '/dict.ui');
+        this.window.set_titlebar(this.builder.get_object('header_bar'));
 
-        this.searchButton = this.addSearchButton();
-        headerBar.pack_start(this.searchButton);
-        headerBar.pack_end(this.pinToggleButton());
+        let searchButton = this.builder.get_object('search_button');
+        searchButton.connect('toggled', this.searchToggled.bind(this));
 
+        this.historyButton = this.builder.get_object('history_button');
+        this.historyButton.connect('toggled', this.historyToggled.bind(this));
+
+        let pinToggleButton = this.builder.get_object('pin_button');
+        pinToggleButton.connect('toggled', this.pinToggled.bind(this));
+
+        this.searchEntry = this.builder.get_object('search_entry');
+        this.searchEntry.set_no_show_all(true);
+        this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
+
+        this.historyBox = this.builder.get_object('history_box');
+        this.historyBox.set_no_show_all(true);
+        this.historyBox.visible = false;
+
+        this.historyList = this.builder.get_object('history_list');
+        this.historyList.set_sort_func(this.listSort);
+        this.historySelectID = 0;
+
+        this.deleteButton = this.builder.get_object('delete_word');
+        this.deleteButton.connect('clicked', this.deleteSelected.bind(this));
+
+        this.notebook = new Gtk.Notebook({});
+        let hbox = this.builder.get_object('horizontal_box');
+        hbox.pack_start(this.notebook, true, true, 0);
+
+        this.window.add(this.builder.get_object('vertical_box'));
+
+        this.createTranslateView();
+        this._updateNoteBook();
+        this.updateHistory();
+    }
+
+    createTranslateView() {
         this.shell = new Gtk.Label();
         this.shell.set_xalign(0);
         this.shell.set_yalign(0);
@@ -174,32 +208,6 @@ class Dict {
         //});
 
         this.web_view.load_uri(this._getUrl());
-
-        let vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
-
-        this.searchEntry = new Gtk.SearchEntry();
-        this.searchEntry.set_no_show_all(true);
-        this.searchEntry.set_visible(false);
-        this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
-        vbox.pack_start(this.searchEntry, false, false, 0);
-
-        this.notebook = new Gtk.Notebook({});
-        vbox.pack_start(this.notebook, true, true, 0);
-
-        this.window.add(vbox);
-
-        this._updateNoteBook();
-    }
-
-    addSearchButton() {
-        let button = new Gtk.ToggleButton({});
-        button.set_relief(Gtk.ReliefStyle.NONE);
-        button.connect('toggled', this.searchToggled.bind(this));
-
-        let image = Gtk.Image.new_from_icon_name('system-search-symbolic', Gtk.IconSize.BUTTON);
-        button.set_image(image);
-
-        return button;
     }
 
     searchToggled(button) {
@@ -211,15 +219,8 @@ class Dict {
         this.translateWords(entry.get_text(), null, null);
     }
 
-    pinToggleButton() {
-        let button = new Gtk.ToggleButton({});
-        button.set_relief(Gtk.ReliefStyle.NONE);
-        button.connect('toggled', this.pinToggled.bind(this));
-
-        let image = Gtk.Image.new_from_file(this.path + '/icons/push-pin.png');
-        button.set_image(image);
-
-        return button;
+    historyToggled(button) {
+        this.historyBox.visible = button.get_active();
     }
 
     windowSizeChanged() {
@@ -249,6 +250,8 @@ class Dict {
     }
 
     _mouseLeave(widget, event) {
+        this.historyButton.set_active(false);
+        this.historyBox.visible = false;
         this.window.hide();
         this.active = false;
     }
@@ -310,12 +313,14 @@ class Dict {
             this.notebook.set_show_tabs(true);
     }
 
-    translateWords(words, x, y) {
+    translateWords(words, x, y, addToHistory = true) {
         let oldWord = this.words;
         this.words = words;
 
         if (this.enableWeb && oldWord != words) {
             this.web_view.load_uri(this._getUrl(this.words));
+            if (addToHistory)
+                this.addToHistory(words);
         }
 
         if (this.enableTransShell)
@@ -349,10 +354,113 @@ class Dict {
     hideDict() {
         if (this.active) {
             this.active = false;
+            this.historyButton.set_active(false);
+            this.historyBox.visible = false;
             this.window.hide();
         } else {
             this.translateWords(this.words, null, null);
         }
+    }
+
+    loadHistory() {
+        let path = GLib.build_filenamev([this.path, 'history.json']);
+        this.historyFile = Gio.File.new_for_path(path);
+        if (!this.historyFile.query_exists(null))
+            this.historyFile.create(Gio.FileCreateFlags.NONE, null);
+
+        this.history = [];
+        let [ok, contents] = this.historyFile.load_contents(null);
+        if (contents.length != 0) {
+            this.history = JSON.parse(contents);
+        }
+    }
+
+    addToHistory(word) {
+        word = word.toLowerCase();
+        let newWord = {};
+        newWord.word = word;
+        newWord.date = GLib.get_real_time();
+        //newWord.date = GLib.DateTime.new_now_local().get_ymd();
+        if (this.findInHistory(word))
+            return;
+
+        this.history.push(newWord);
+        let [success, tag] = this.historyFile.replace_contents(JSON.stringify(this.history),
+                                                               null,
+                                                               false,
+                                                               Gio.FileCreateFlags.REPLACE_DESTINATION,
+                                                               null);
+        this.updateHistory();
+    }
+
+    deleteInHistory(word) {
+        this.history.forEach( w => {
+            if (w.word == word)
+                result = true;
+        });
+    }
+
+    findInHistory(word) {
+        let result = false;
+        this.history.forEach( w => {
+            if (w.word == word)
+                result = true;
+        });
+
+        return result;
+    }
+
+    updateHistory() {
+        if (this.historySelectID)
+            this.historyList.disconnect(this.historySelectID);
+
+        this.historyList.get_children().forEach( c => {
+            this.historyList.remove(c);
+        });
+
+        this.history.forEach( w => {
+            this.historyList.add(this.listRow(w.word));
+        });
+
+        let row = this.historyList.get_selected_row();
+        if (row)
+            this.historyList.unselect_row(row);
+
+        //this.historySelectID = this.historyList.connect('selected_rows_changed', this.listSelectChange.bind(this));
+        this.historySelectID = this.historyList.connect('row_selected', this.listSelectChange.bind(this));
+    }
+
+    listSort(row1, row2) {
+        let d1 = row1.get_children()[0];
+        let d2 = row2.get_children()[0];
+        return d1.rowText > d2.rowText;
+    }
+
+    listSelectChange() {
+        print("wxg: listSelectChange");
+        let row = this.historyList.get_selected_row();
+        let child = row.get_children();
+        let box = child[0];
+        this.translateWords(box.rowText, null, null, false);
+    }
+
+    listRow(text) {
+        let builder = new Gtk.Builder();
+        builder.add_from_file(this.path + '/list_row.ui');
+
+        let box = builder.get_object('list_row');
+        let row = builder.get_object('row_text');
+        row.set_label(text);
+        box.rowText = text;
+
+        return box;
+    }
+
+    deleteSelected() {
+        let row = this.historyList.get_selected_row();
+        let box = row.get_children()[0];
+        if (row)
+            this.historyList.remove(row);
     }
 };
 
