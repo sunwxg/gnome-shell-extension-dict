@@ -102,7 +102,10 @@ class Dict {
         this.language = this._gsettings.get_string(LANGUAGE);
         this.languageId = this._gsettings.connect("changed::" + LANGUAGE,
                                                   () => { this.language = this._gsettings.get_string(LANGUAGE); });
-        this.url = "https://translate.google.com/#view=home&op=translate&sl=auto&tl=" + this.language + "&text=%WORD";
+
+        this.url = this._gsettings.get_string(ADDRESS_ACTIVE);
+        this.addressId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
+                                                  () => { this.url = this._gsettings.get_string(ADDRESS_ACTIVE); });
 
         this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
         this.enableWebId = this._gsettings.connect("changed::" + ENABLE_WEB,
@@ -134,7 +137,7 @@ class Dict {
         this.window.set_resizable(true);
         this.width = this._gsettings.get_int(WINDOW_WIDTH);
         this.height = this._gsettings.get_int(WINDOW_HEIGHT);
-        this.window.set_size_request(this.width, this.height);
+        this.window.resize(this.width, this.height);
 
         this.builder = new Gtk.Builder();
         this.builder.add_from_file(this.path + '/dict.ui');
@@ -172,7 +175,7 @@ class Dict {
 
         this.createTranslateView();
         this._updateNoteBook();
-        this.updateHistory();
+        this.updateHistoryList();
     }
 
     createTranslateView() {
@@ -216,11 +219,22 @@ class Dict {
     }
 
     searchEntryActivate(entry) {
-        this.translateWords(entry.get_text(), null, null);
+        this._translateWords(entry.get_text(), null, null, true);
     }
 
     historyToggled(button) {
-        this.historyBox.visible = button.get_active();
+        if (button.get_active()) {
+            this.historyBox.visible = button.get_active();
+            let [width, height] = this.window.get_size();
+            let [boxWidth, ] = this.historyBox.get_preferred_width();
+            this.window.resize(width + boxWidth, height);
+        } else {
+            let [width, height] = this.window.get_size();
+            let [boxWidth, ] = this.historyBox.get_preferred_width();
+            this.window.resize(width - boxWidth, height);
+            this.historyBox.visible = button.get_active();
+        }
+
     }
 
     windowSizeChanged() {
@@ -313,7 +327,11 @@ class Dict {
             this.notebook.set_show_tabs(true);
     }
 
-    translateWords(words, x, y, addToHistory = true) {
+    translateWords(words, x, y) {
+        this._translateWords(words, x, y, true);
+    }
+
+    _translateWords(words, x, y, addToHistory = true) {
         let oldWord = this.words;
         this.words = words;
 
@@ -358,7 +376,7 @@ class Dict {
             this.historyBox.visible = false;
             this.window.hide();
         } else {
-            this.translateWords(this.words, null, null);
+            this._translateWords(this.words, null, null, false);
         }
     }
 
@@ -371,7 +389,7 @@ class Dict {
         this.history = [];
         let [ok, contents] = this.historyFile.load_contents(null);
         if (contents.length != 0) {
-            this.history = JSON.parse(contents);
+            this.history = JSON.parse(imports.byteArray.toString(contents));
         }
     }
 
@@ -385,19 +403,28 @@ class Dict {
             return;
 
         this.history.push(newWord);
+        this.saveHistory();
+        this.updateHistoryList();
+    }
+
+    deleteInHistory(word) {
+        let index = null;
+        this.history.forEach( w => {
+            if (w.word == word)
+                index = this.history.indexOf(w);
+        });
+
+        if (index)
+            this.history.splice(index, 1);
+        this.saveHistory();
+    }
+
+    saveHistory() {
         let [success, tag] = this.historyFile.replace_contents(JSON.stringify(this.history),
                                                                null,
                                                                false,
                                                                Gio.FileCreateFlags.REPLACE_DESTINATION,
                                                                null);
-        this.updateHistory();
-    }
-
-    deleteInHistory(word) {
-        this.history.forEach( w => {
-            if (w.word == word)
-                result = true;
-        });
     }
 
     findInHistory(word) {
@@ -410,7 +437,7 @@ class Dict {
         return result;
     }
 
-    updateHistory() {
+    updateHistoryList() {
         if (this.historySelectID)
             this.historyList.disconnect(this.historySelectID);
 
@@ -439,9 +466,12 @@ class Dict {
     listSelectChange() {
         print("wxg: listSelectChange");
         let row = this.historyList.get_selected_row();
+        if (row == null)
+            return;
+
         let child = row.get_children();
         let box = child[0];
-        this.translateWords(box.rowText, null, null, false);
+        this._translateWords(box.rowText, null, null, false);
     }
 
     listRow(text) {
@@ -459,8 +489,10 @@ class Dict {
     deleteSelected() {
         let row = this.historyList.get_selected_row();
         let box = row.get_children()[0];
-        if (row)
+        if (row) {
             this.historyList.remove(row);
+            this.deleteInHistory(box.rowText);
+        }
     }
 };
 
