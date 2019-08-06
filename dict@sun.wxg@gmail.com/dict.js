@@ -9,6 +9,7 @@ const Webkit = imports.gi.WebKit2;
 
 imports.searchPath.push(GLib.path_get_dirname(System.programInvocationName));
 const Util = imports.util;
+const History = imports.history.History;
 
 const WEB_SITE = 'https://translate.google.com/#view=home&op=translate&sl=auto&tl=auto&text=%WORD';
 
@@ -74,8 +75,6 @@ class Dict {
         this._gsettings = Util.getSettings(DICT_SCHEMA);
 
         this.path = GLib.path_get_dirname(System.programInvocationName);
-
-        this.loadHistory();
 
         this.application = new Gtk.Application({application_id: "org.gnome.Dict"});
         this.application.connect('activate', this._onActivate.bind(this));
@@ -156,26 +155,18 @@ class Dict {
         this.searchEntry.set_no_show_all(true);
         this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
 
-        this.historyBox = this.builder.get_object('history_box');
-        this.historyBox.set_no_show_all(true);
-        this.historyBox.visible = false;
-
-        this.historyList = this.builder.get_object('history_list');
-        this.historyList.set_sort_func(this.listSort);
-        this.historySelectID = 0;
-
-        this.deleteButton = this.builder.get_object('delete_word');
-        this.deleteButton.connect('clicked', this.deleteSelected.bind(this));
+        let hbox = this.builder.get_object('horizontal_box');
+        this.history = new History();
+        hbox.pack1(this.history.historyBox, false, false);
+        this.history.connect("selectChanged", this.historySelectChanged.bind(this));
 
         this.notebook = new Gtk.Notebook({});
-        let hbox = this.builder.get_object('horizontal_box');
-        hbox.pack_start(this.notebook, true, true, 0);
+        hbox.pack2(this.notebook, true, false);
 
         this.window.add(this.builder.get_object('vertical_box'));
 
         this.createTranslateView();
         this._updateNoteBook();
-        this.updateHistoryList();
     }
 
     createTranslateView() {
@@ -224,17 +215,21 @@ class Dict {
 
     historyToggled(button) {
         if (button.get_active()) {
-            this.historyBox.visible = button.get_active();
+            this.history.historyBox.visible = button.get_active();
             let [width, height] = this.window.get_size();
-            let [boxWidth, ] = this.historyBox.get_preferred_width();
+            let [boxWidth, ] = this.history.historyBox.get_preferred_width();
             this.window.resize(width + boxWidth, height);
         } else {
             let [width, height] = this.window.get_size();
-            let [boxWidth, ] = this.historyBox.get_preferred_width();
+            let [boxWidth, ] = this.history.historyBox.get_preferred_width();
             this.window.resize(width - boxWidth, height);
-            this.historyBox.visible = button.get_active();
+            this._gsettings.set_int(WINDOW_WIDTH, width - boxWidth);
+            this.history.historyBox.visible = button.get_active();
         }
+    }
 
+    historySelectChanged(history, word) {
+        this._translateWords(word, null, null, false);
     }
 
     windowSizeChanged() {
@@ -265,7 +260,6 @@ class Dict {
 
     _mouseLeave(widget, event) {
         this.historyButton.set_active(false);
-        this.historyBox.visible = false;
         this.window.hide();
         this.active = false;
     }
@@ -338,7 +332,7 @@ class Dict {
         if (this.enableWeb && oldWord != words) {
             this.web_view.load_uri(this._getUrl(this.words));
             if (addToHistory)
-                this.addToHistory(words);
+                this.history.addWord(words);
         }
 
         if (this.enableTransShell)
@@ -373,125 +367,9 @@ class Dict {
         if (this.active) {
             this.active = false;
             this.historyButton.set_active(false);
-            this.historyBox.visible = false;
             this.window.hide();
         } else {
             this._translateWords(this.words, null, null, false);
-        }
-    }
-
-    loadHistory() {
-        let path = GLib.build_filenamev([this.path, 'history.json']);
-        this.historyFile = Gio.File.new_for_path(path);
-        if (!this.historyFile.query_exists(null))
-            this.historyFile.create(Gio.FileCreateFlags.NONE, null);
-
-        this.history = [];
-        let [ok, contents] = this.historyFile.load_contents(null);
-        if (contents.length != 0) {
-            this.history = JSON.parse(imports.byteArray.toString(contents));
-        }
-    }
-
-    addToHistory(word) {
-        word = word.toLowerCase();
-        let newWord = {};
-        newWord.word = word;
-        newWord.date = GLib.get_real_time();
-        //newWord.date = GLib.DateTime.new_now_local().get_ymd();
-        if (this.findInHistory(word))
-            return;
-
-        this.history.push(newWord);
-        this.saveHistory();
-        this.updateHistoryList();
-    }
-
-    deleteInHistory(word) {
-        let index = null;
-        this.history.forEach( w => {
-            if (w.word == word)
-                index = this.history.indexOf(w);
-        });
-
-        if (index)
-            this.history.splice(index, 1);
-        this.saveHistory();
-    }
-
-    saveHistory() {
-        let [success, tag] = this.historyFile.replace_contents(JSON.stringify(this.history),
-                                                               null,
-                                                               false,
-                                                               Gio.FileCreateFlags.REPLACE_DESTINATION,
-                                                               null);
-    }
-
-    findInHistory(word) {
-        let result = false;
-        this.history.forEach( w => {
-            if (w.word == word)
-                result = true;
-        });
-
-        return result;
-    }
-
-    updateHistoryList() {
-        if (this.historySelectID)
-            this.historyList.disconnect(this.historySelectID);
-
-        this.historyList.get_children().forEach( c => {
-            this.historyList.remove(c);
-        });
-
-        this.history.forEach( w => {
-            this.historyList.add(this.listRow(w.word));
-        });
-
-        let row = this.historyList.get_selected_row();
-        if (row)
-            this.historyList.unselect_row(row);
-
-        //this.historySelectID = this.historyList.connect('selected_rows_changed', this.listSelectChange.bind(this));
-        this.historySelectID = this.historyList.connect('row_selected', this.listSelectChange.bind(this));
-    }
-
-    listSort(row1, row2) {
-        let d1 = row1.get_children()[0];
-        let d2 = row2.get_children()[0];
-        return d1.rowText > d2.rowText;
-    }
-
-    listSelectChange() {
-        print("wxg: listSelectChange");
-        let row = this.historyList.get_selected_row();
-        if (row == null)
-            return;
-
-        let child = row.get_children();
-        let box = child[0];
-        this._translateWords(box.rowText, null, null, false);
-    }
-
-    listRow(text) {
-        let builder = new Gtk.Builder();
-        builder.add_from_file(this.path + '/list_row.ui');
-
-        let box = builder.get_object('list_row');
-        let row = builder.get_object('row_text');
-        row.set_label(text);
-        box.rowText = text;
-
-        return box;
-    }
-
-    deleteSelected() {
-        let row = this.historyList.get_selected_row();
-        let box = row.get_children()[0];
-        if (row) {
-            this.historyList.remove(row);
-            this.deleteInHistory(box.rowText);
         }
     }
 };
