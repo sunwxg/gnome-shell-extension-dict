@@ -19,9 +19,46 @@ var History = class History {
         this.historyList.set_sort_func(this.listSort);
         this.historySelectID = 0;
 
+        this.star = new Star();
+        this.star.connect('starChanged', this.updateStar.bind(this));
+        this.historyBox.add(this.star.box);
+
         this.deleteButton = this.builder.get_object('delete_word');
         this.deleteButton.connect('clicked', this.deleteSelected.bind(this));
 
+        this.starButton = this.builder.get_object('star_button');
+        this.setupStarButton();
+
+        this.starFilter = 0;
+        this.updateHistoryList();
+    }
+
+    setupStarButton() {
+        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(this.path + '/icons/star.png') });
+        let image = new Gtk.Image();
+        image.set_from_gicon(gicon, Gtk.IconSize.BUTTON);
+        this.starButton.set_image(image);
+
+        let button;
+        button = this.builder.get_object('star_0');
+        button.star = 0;
+        button.connect('clicked', this.doStarFilter.bind(this));
+
+        button = this.builder.get_object('star_1');
+        button.star = 1;
+        button.connect('clicked', this.doStarFilter.bind(this));
+
+        button = this.builder.get_object('star_2');
+        button.star = 2;
+        button.connect('clicked', this.doStarFilter.bind(this));
+
+        button = this.builder.get_object('star_3');
+        button.star = 3;
+        button.connect('clicked', this.doStarFilter.bind(this));
+    }
+
+    doStarFilter(button) {
+        this.starFilter = button.star;
         this.updateHistoryList();
     }
 
@@ -44,23 +81,37 @@ var History = class History {
         let newWord = {};
         newWord.word = word;
         newWord.date = GLib.get_real_time();
+        newWord.star = 0;
         //newWord.date = GLib.DateTime.new_now_local().get_ymd();
-        if (this.findInHistory(word))
+        if (this.findInHistory(word) != null)
             return;
 
+        this.star.setStar(newWord.star);
         this.history.push(newWord);
         this.saveHistory();
         this.updateHistoryList();
     }
 
-    deleteInHistory(word) {
-        let index = null;
-        this.history.forEach( w => {
-            if (w.word == word)
-                index = this.history.indexOf(w);
-        });
+    updateStar(star, number) {
+        let row = this.historyList.get_selected_row();
+        if (row == null) {
+            this.star.setSensitiveFalse();
+            return;
+        }
 
-        if (index)
+        let child = row.get_children();
+        let box = child[0];
+        box.star = number;
+
+        let index = this.findInHistory(box.rowText);
+        if (index != null)
+            this.history[index].star = number;
+        this.saveHistory();
+    }
+
+    deleteInHistory(word) {
+        let index = this.findInHistory(word);
+        if (index != null)
             this.history.splice(index, 1);
         this.saveHistory();
     }
@@ -74,13 +125,13 @@ var History = class History {
     }
 
     findInHistory(word) {
-        let result = false;
+        let index = null;
         this.history.forEach( w => {
             if (w.word == word)
-                result = true;
+                index = this.history.indexOf(w);
         });
 
-        return result;
+        return index;
     }
 
     updateHistoryList() {
@@ -92,7 +143,13 @@ var History = class History {
         });
 
         this.history.forEach( w => {
-            this.historyList.add(this.listRow(w.word));
+            if (w.star == null)
+                w.star = 0;
+
+            if (this.starFilter == 0)
+                this.historyList.add(this.listRow(w.word, w.star));
+            else if (this.starFilter == w.star)
+                this.historyList.add(this.listRow(w.word, w.star));
         });
 
         let row = this.historyList.get_selected_row();
@@ -101,6 +158,8 @@ var History = class History {
 
         //this.historySelectID = this.historyList.connect('selected_rows_changed', this.listSelectChange.bind(this));
         this.historySelectID = this.historyList.connect('row_selected', this.listSelectChange.bind(this));
+
+        this.star.setSensitiveFalse();
     }
 
     listSort(row1, row2) {
@@ -111,15 +170,18 @@ var History = class History {
 
     listSelectChange() {
         let row = this.historyList.get_selected_row();
-        if (row == null)
+        if (row == null) {
+            this.star.setSensitiveFalse();
             return;
+        }
 
         let child = row.get_children();
         let box = child[0];
+        this.star.setStar(box.star);
         this.emit("selectChanged", box.rowText);
     }
 
-    listRow(text) {
+    listRow(text, star) {
         let builder = new Gtk.Builder();
         builder.add_from_file(this.path + '/list_row.ui');
 
@@ -127,6 +189,7 @@ var History = class History {
         let row = builder.get_object('row_text');
         row.set_label(text);
         box.rowText = text;
+        box.star = star;
 
         return box;
     }
@@ -141,3 +204,80 @@ var History = class History {
     }
 };
 Signals.addSignalMethods(History.prototype);
+
+var Star = class Star {
+    constructor() {
+        this.path = GLib.path_get_dirname(System.programInvocationName);
+
+        this.box = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
+        this.box.visible = true;
+
+        this.buttons = [];
+        for (let i = 0; i < 3; i++) {
+            let button = new Gtk.Button();
+            button.visible = true;
+            button.set_relief(Gtk.ReliefStyle.NONE);
+            button.set_image(this.unstarImage());
+            button.set_sensitive(false);
+            button.star = false;
+            button.number = i + 1;
+            button.connect('clicked', this.starClicked.bind(this));
+
+            this.box.pack_start(button, true, true, 0);
+            this.buttons[i] = button;
+        }
+    }
+
+    starImage() {
+        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(this.path + '/icons/star.png') });
+        let image = new Gtk.Image();
+        image.set_from_gicon(gicon, Gtk.IconSize.BUTTON);
+
+        return image;
+    }
+
+    unstarImage() {
+        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(this.path + '/icons/star-empty.png') });
+        let image = new Gtk.Image();
+        image.set_from_gicon(gicon, Gtk.IconSize.BUTTON);
+
+        return image;
+    }
+
+    starClicked(button) {
+        let number;
+        if (button.star)
+            number = button.number - 1;
+        else
+            number = button.number;
+
+        this.setStar(number);
+
+        this.emit("starChanged", number);
+    }
+
+    setSensitiveFalse() {
+        this.buttons.forEach( button => {
+            button.set_image(this.unstarImage());
+            button.set_sensitive(false);
+            button.star = false;
+        });
+    }
+
+    setStar(number) {
+        if (number == null)
+            number = 0;
+
+        for (let i = 0; i < this.buttons.length; i++) {
+            if (i < number) {
+                this.buttons[i].set_image(this.starImage());
+                this.buttons[i].star = true;
+            } else {
+                this.buttons[i].set_image(this.unstarImage())
+                this.buttons[i].star = false;
+            }
+            this.buttons[i].set_sensitive(true);
+        }
+    }
+};
+Signals.addSignalMethods(Star.prototype);
