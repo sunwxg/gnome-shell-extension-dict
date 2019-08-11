@@ -4,6 +4,9 @@ const System = imports.system;
 const GLib = imports.gi.GLib;
 const Signals = imports.signals;
 
+imports.searchPath.push(GLib.path_get_dirname(System.programInvocationName));
+const Util = imports.util;
+
 var History = class History {
     constructor() {
         this.loadHistory();
@@ -64,16 +67,35 @@ var History = class History {
 
     loadHistory() {
         let path = GLib.build_filenamev([GLib.get_home_dir(), '.dict_history.json']);
-        this.historyFile = Gio.File.new_for_path(path);
-        if (!this.historyFile.query_exists(null))
-            this.historyFile.create(Gio.FileCreateFlags.NONE, null);
+        this.historyFile = Util.openFile(path);
+        this.history = Util.loadJSON(this.historyFile);
 
-        this.history = [];
-        let [ok, contents] = this.historyFile.load_contents(null);
-        if (contents.length != 0) {
-            //this.history = JSON.parse(imports.byteArray.toString(contents));
-            this.history = JSON.parse(contents);
-        }
+        path = GLib.build_filenamev([GLib.get_home_dir(), '.dict_delete.json']);
+        this.deleteFile = Util.openFile(path);
+        this.deleteWords = Util.loadJSON(this.deleteFile);
+
+        this.loadOtherHistory();
+    }
+
+    loadOtherHistory() {
+        let path = GLib.build_filenamev([GLib.get_home_dir(), '.dict']);
+        let files = Util.openFolder(path);
+
+        files.forEach( file => {
+            let history = Util.loadJSON(file);
+            history.forEach( d => {
+                let find = false;
+                this.deleteWords.forEach( w => {
+                    if (w == d.word)
+                        find = true;
+                });
+
+                if (!find && this.findInHistory(d.word) == null)
+                    this.history.push(d);
+            });
+        })
+
+        this.saveHistory();
     }
 
     addWord(word) {
@@ -114,14 +136,11 @@ var History = class History {
         if (index != null)
             this.history.splice(index, 1);
         this.saveHistory();
+        this.saveDeleteFile(word);
     }
 
     saveHistory() {
-        let [success, tag] = this.historyFile.replace_contents(JSON.stringify(this.history),
-                                                               null,
-                                                               false,
-                                                               Gio.FileCreateFlags.REPLACE_DESTINATION,
-                                                               null);
+        Util.saveJsonToFile(this.historyFile, this.history);
     }
 
     findInHistory(word) {
@@ -132,6 +151,19 @@ var History = class History {
         });
 
         return index;
+    }
+
+    saveDeleteFile(word) {
+        let find = false;
+        this.deleteWords.forEach( w => {
+            if (w == word)
+                find = true
+        });
+
+        if (!find) {
+            this.deleteWords.push(word);
+            Util.saveJsonToFile(this.deleteFile, this.deleteWords);
+        }
     }
 
     updateHistoryList() {
