@@ -9,6 +9,7 @@ const Webkit = imports.gi.WebKit2;
 
 imports.searchPath.push(GLib.path_get_dirname(System.programInvocationName));
 const Util = imports.util;
+const History = imports.history.History;
 
 const WEB_SITE = 'https://translate.google.com/#view=home&op=translate&sl=auto&tl=auto&text=%WORD';
 
@@ -100,7 +101,10 @@ class Dict {
         this.language = this._gsettings.get_string(LANGUAGE);
         this.languageId = this._gsettings.connect("changed::" + LANGUAGE,
                                                   () => { this.language = this._gsettings.get_string(LANGUAGE); });
-        this.url = "https://translate.google.com/#view=home&op=translate&sl=auto&tl=" + this.language + "&text=%WORD";
+
+        this.url = this._gsettings.get_string(ADDRESS_ACTIVE);
+        this.addressId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
+                                                  () => { this.url = this._gsettings.get_string(ADDRESS_ACTIVE); });
 
         this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
         this.enableWebId = this._gsettings.connect("changed::" + ENABLE_WEB,
@@ -132,16 +136,40 @@ class Dict {
         this.window.set_resizable(true);
         this.width = this._gsettings.get_int(WINDOW_WIDTH);
         this.height = this._gsettings.get_int(WINDOW_HEIGHT);
-        this.window.set_size_request(this.width, this.height);
+        this.window.resize(this.width, this.height);
 
-        let headerBar = new Gtk.HeaderBar({ show_close_button: false,
-                                            title: 'Dict', });
-        this.window.set_titlebar(headerBar);
+        this.builder = new Gtk.Builder();
+        this.builder.add_from_file(this.path + '/dict.ui');
+        this.window.set_titlebar(this.builder.get_object('header_bar'));
 
-        this.searchButton = this.addSearchButton();
-        headerBar.pack_start(this.searchButton);
-        headerBar.pack_end(this.pinToggleButton());
+        let searchButton = this.builder.get_object('search_button');
+        searchButton.connect('toggled', this.searchToggled.bind(this));
 
+        this.historyButton = this.builder.get_object('history_button');
+        this.historyButton.connect('toggled', this.historyToggled.bind(this));
+
+        let pinToggleButton = this.builder.get_object('pin_button');
+        pinToggleButton.connect('toggled', this.pinToggled.bind(this));
+
+        this.searchEntry = this.builder.get_object('search_entry');
+        this.searchEntry.set_no_show_all(true);
+        this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
+
+        let hbox = this.builder.get_object('horizontal_box');
+        this.history = new History();
+        hbox.pack1(this.history.historyBox, false, false);
+        this.history.connect("selectChanged", this.historySelectChanged.bind(this));
+
+        this.notebook = new Gtk.Notebook({});
+        hbox.pack2(this.notebook, true, false);
+
+        this.window.add(this.builder.get_object('vertical_box'));
+
+        this.createTranslateView();
+        this._updateNoteBook();
+    }
+
+    createTranslateView() {
         this.shell = new Gtk.Label();
         this.shell.set_xalign(0);
         this.shell.set_yalign(0);
@@ -174,32 +202,6 @@ class Dict {
         //});
 
         this.web_view.load_uri(this._getUrl());
-
-        let vbox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL });
-
-        this.searchEntry = new Gtk.SearchEntry();
-        this.searchEntry.set_no_show_all(true);
-        this.searchEntry.set_visible(false);
-        this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
-        vbox.pack_start(this.searchEntry, false, false, 0);
-
-        this.notebook = new Gtk.Notebook({});
-        vbox.pack_start(this.notebook, true, true, 0);
-
-        this.window.add(vbox);
-
-        this._updateNoteBook();
-    }
-
-    addSearchButton() {
-        let button = new Gtk.ToggleButton({});
-        button.set_relief(Gtk.ReliefStyle.NONE);
-        button.connect('toggled', this.searchToggled.bind(this));
-
-        let image = Gtk.Image.new_from_icon_name('system-search-symbolic', Gtk.IconSize.BUTTON);
-        button.set_image(image);
-
-        return button;
     }
 
     searchToggled(button) {
@@ -208,18 +210,26 @@ class Dict {
     }
 
     searchEntryActivate(entry) {
-        this.translateWords(entry.get_text(), null, null);
+        this._translateWords(entry.get_text(), null, null, true);
     }
 
-    pinToggleButton() {
-        let button = new Gtk.ToggleButton({});
-        button.set_relief(Gtk.ReliefStyle.NONE);
-        button.connect('toggled', this.pinToggled.bind(this));
+    historyToggled(button) {
+        if (button.get_active()) {
+            this.history.historyBox.visible = button.get_active();
+            let [width, height] = this.window.get_size();
+            let [boxWidth, ] = this.history.historyBox.get_preferred_width();
+            this.window.resize(width + boxWidth, height);
+        } else {
+            let [width, height] = this.window.get_size();
+            let [boxWidth, ] = this.history.historyBox.get_preferred_width();
+            this.window.resize(width - boxWidth, height);
+            this._gsettings.set_int(WINDOW_WIDTH, width - boxWidth);
+            this.history.historyBox.visible = button.get_active();
+        }
+    }
 
-        let image = Gtk.Image.new_from_file(this.path + '/icons/push-pin.png');
-        button.set_image(image);
-
-        return button;
+    historySelectChanged(history, word) {
+        this._translateWords(word, null, null, false);
     }
 
     windowSizeChanged() {
@@ -249,6 +259,7 @@ class Dict {
     }
 
     _mouseLeave(widget, event) {
+        this.historyButton.set_active(false);
         this.window.hide();
         this.active = false;
     }
@@ -311,11 +322,17 @@ class Dict {
     }
 
     translateWords(words, x, y) {
+        this._translateWords(words, x, y, true);
+    }
+
+    _translateWords(words, x, y, addToHistory = true) {
         let oldWord = this.words;
         this.words = words;
 
         if (this.enableWeb && oldWord != words) {
             this.web_view.load_uri(this._getUrl(this.words));
+            if (addToHistory)
+                this.history.addWord(words);
         }
 
         if (this.enableTransShell)
@@ -349,9 +366,10 @@ class Dict {
     hideDict() {
         if (this.active) {
             this.active = false;
+            this.historyButton.set_active(false);
             this.window.hide();
         } else {
-            this.translateWords(this.words, null, null);
+            this._translateWords(this.words, null, null, false);
         }
     }
 };
