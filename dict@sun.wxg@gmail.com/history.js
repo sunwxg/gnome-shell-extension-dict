@@ -104,7 +104,6 @@ var History = class History {
         newWord.word = word;
         newWord.date = GLib.get_real_time();
         newWord.star = 0;
-        //newWord.date = GLib.DateTime.new_now_local().get_ymd();
         if (this.findInHistory(word) != null)
             return;
 

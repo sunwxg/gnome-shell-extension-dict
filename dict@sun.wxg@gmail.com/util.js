@@ -52,8 +52,7 @@ function loadJSON(file) {
     let map = [];
     let [ok, contents] = file.load_contents(null);
     if (contents.length != 0) {
-        //map = JSON.parse(contents);
-        map = JSON.parse(imports.byteArray.toString(contents));
+        map = JSON.parse(contents);
     }
 
     return map;
