@@ -151,6 +151,9 @@ class Dict {
         let pinToggleButton = this.builder.get_object('pin_button');
         pinToggleButton.connect('toggled', this.pinToggled.bind(this));
 
+        let configButton = this.builder.get_object('config_button');
+        configButton.connect('clicked', this.configOpen.bind(this));
+
         this.searchEntry = this.builder.get_object('search_entry');
         this.searchEntry.set_no_show_all(true);
         this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
@@ -173,6 +176,7 @@ class Dict {
         this.shell = new Gtk.Label();
         this.shell.set_xalign(0);
         this.shell.set_yalign(0);
+        this.shell.set_selectable(true);
         let scroll_window = new Gtk.ScrolledWindow({ expand: true });
         scroll_window.add(this.shell);
         this.shell.scroll_window = scroll_window;
@@ -253,6 +257,10 @@ class Dict {
             if (!this.focusOutId)
                 this.focusOutId = this.window.connect('focus-out-event', this._mouseLeave.bind(this));
         }
+    }
+
+    configOpen() {
+        GLib.spawn_command_line_async('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
     }
 
     _mouseMotion(widget, event) {
