@@ -66,3 +66,32 @@ function saveJsonToFile(file, json) {
                                                null);
 }
 
+function loadJSONfromZip(file) {
+    let map = [];
+    let [ok, contents] = file.load_contents(null);
+    if (contents.length != 0) {
+        let decompressor = Gio.ZlibDecompressor.new(Gio.ZlibCompressorFormat.GZIP);
+        let input = Gio.MemoryOutputStream.new_resizable();
+        let inputStream = Gio.ConverterOutputStream.new(input, decompressor);
+        inputStream.write_all(contents, null);
+        inputStream.close(null);
+
+        map = JSON.parse(input.steal_as_bytes().get_data());
+    }
+
+    return map;
+}
+
+function saveJsonToZipFile(file, json) {
+    let compressor = Gio.ZlibCompressor.new(Gio.ZlibCompressorFormat.GZIP, 9);
+    let out = Gio.MemoryOutputStream.new_resizable();
+    let outStream = Gio.ConverterOutputStream.new(out, compressor);
+    outStream.write_all(JSON.stringify(json), null);
+    outStream.close(null);
+
+    let [success, tag] = file.replace_contents(out.steal_as_bytes().get_data(),
+                                               null,
+                                               false,
+                                               Gio.FileCreateFlags.REPLACE_DESTINATION,
+                                               null);
+}
