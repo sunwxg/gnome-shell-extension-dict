@@ -231,6 +231,7 @@ var History = class History {
         if (row) {
             this.historyList.remove(row);
             this.deleteInHistory(box.rowText);
+            this.emit("deleteWord", box.rowText);
         }
     }
 };
