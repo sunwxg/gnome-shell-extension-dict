@@ -194,7 +194,6 @@ class Dict {
 
         let context = Webkit.WebContext.new_with_website_data_manager(manager);
         this.web_view = Webkit.WebView.new_with_context(context);
-        this.web_view.set_can_focus(false);
         let settings = this.web_view.get_settings();
         settings.set_enable_page_cache(false);
         settings.set_enable_offline_web_application_cache(false);
@@ -343,6 +342,7 @@ class Dict {
             label.set_text('web');
             this.notebook.append_page(this.web_view, label);
             this.notebook.child_set_property(this.web_view, 'tab-expand', true);
+            this.web_view.set_can_focus(this.enableTransShell ? false : true);
         }
 
         if (this.notebook.get_n_pages() < 1) {
