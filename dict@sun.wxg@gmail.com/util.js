@@ -76,7 +76,7 @@ function loadJSONfromZip(file) {
         inputStream.write_all(contents, null);
         inputStream.close(null);
 
-        map = JSON.parse(input.steal_as_bytes().get_data());
+        map = JSON.parse(imports.byteArray.toString(input.steal_as_bytes().get_data()));
     }
 
     return map;

@@ -137,6 +137,11 @@ class Flag {
         this.checkClipboardId = 0;
         this._flagWatchId = 0;
 
+        this.stClipboard = St.Clipboard.get_default();
+        this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT,
+                                                       this.checkStClipboard.bind(this));
+        GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
+/*
         if (Meta.is_wayland_compositor()) {
             this.stClipboard = St.Clipboard.get_default();
             this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT,
@@ -151,6 +156,7 @@ class Flag {
             }
             this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
         }
+*/
 
         this.removeNotificaionId = global.display.connect('window-demands-attention',
                                                           this._onWindowDemandsAttention.bind(this));
@@ -403,7 +409,7 @@ class MenuButton extends PanelMenu.Button {
         this._addIcon();
         this._showIcon();
 
-        this.actor.connect('button-press-event', this._onButtonPress.bind(this));
+        this.connect('button-press-event', this._onButtonPress.bind(this));
 
         this.iconId = this._gsettings.connect('changed::' + TRIGGER_STATE, this._addIcon.bind(this));
         this.showIconId = this._gsettings.connect('changed::' + TOP_ICON, this._showIcon.bind(this));
@@ -412,17 +418,17 @@ class MenuButton extends PanelMenu.Button {
     _addIcon() {
         let trigger = this._gsettings.get_boolean(TRIGGER_STATE);
         if (trigger) {
-            this.actor.remove_child(this.iconDisable);
-            this.actor.add_child(this.iconEnable);
+            this.remove_child(this.iconDisable);
+            this.add_child(this.iconEnable);
         } else {
-            this.actor.remove_child(this.iconEnable);
-            this.actor.add_child(this.iconDisable);
+            this.remove_child(this.iconEnable);
+            this.add_child(this.iconDisable);
         }
     }
 
     _showIcon() {
         let showIcon = this._gsettings.get_boolean(TOP_ICON);
-        this.actor.visible = showIcon;
+        this.visible = showIcon;
     }
 
     _onButtonPress(actor, event) {

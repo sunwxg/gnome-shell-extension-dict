@@ -272,6 +272,11 @@ class Dict {
         this.hideDict();
 
         let [, argv] = GLib.shell_parse_argv('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
+
+        //GLib.spawn_sync(null, argv, null,
+                        //GLib.SpawnFlags.SEARCH_PATH,
+                        //null);
+
         let [success, pid] = GLib.spawn_async(null, argv, null,
                                               GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
                                               null);
@@ -331,14 +336,14 @@ class Dict {
 
         let label;
         if (this.enableTransShell) {
-            label =new Gtk.Label();
+            label = new Gtk.Label();
             label.set_text('translate shell');
             this.notebook.append_page(this.shell.scroll_window, label);
             this.notebook.child_set_property(this.shell.scroll_window, 'tab-expand', true);
         }
 
         if (this.enableWeb) {
-            label =new Gtk.Label();
+            label = new Gtk.Label();
             label.set_text('web');
             this.notebook.append_page(this.web_view, label);
             this.notebook.child_set_property(this.web_view, 'tab-expand', true);
