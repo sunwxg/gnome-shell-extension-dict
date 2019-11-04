@@ -6,6 +6,12 @@
       <description>
       </description>
     </key>
+    <key name="hotkey-popup-window" type="as">
+      <default><![CDATA[['<Control><Alt>o']]]></default>
+      <summary>Key to show popup window</summary>
+      <description>
+      </description>
+    </key>
     <key name="trigger-state" type="b">
       <default>true</default>
       <summary>Function is on or off</summary>
@@ -69,6 +75,12 @@
     <key name="load-image" type="b">
       <default>true</default>
       <summary>Load image</summary>
+      <description>
+      </description>
+    </key>
+    <key name="window-follow-pointer" type="b">
+      <default>true</default>
+      <summary>Popup window follow pointer</summary>
       <description>
       </description>
     </key>

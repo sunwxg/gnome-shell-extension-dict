@@ -37,6 +37,8 @@ const ADDRESS_ACTIVE = 'address-active';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
+const WINDOW_FOLLOW_POINTER = 'window-follow-pointer';
+const SHOW_POPUP_WINDOW = 'hotkey-popup-window';
 
 const BUS_NAME = 'org.gnome.Dict';
 const OBJECT_PATH = '/org/gnome/Dict';
@@ -94,6 +96,12 @@ class Flag {
         this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
 
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
+
+        this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
+        this.windowFollowPointerID = this._gsettings.connect("changed::" + WINDOW_FOLLOW_POINTER, () => {
+            this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
+        });
+
         this.addressListId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
                                                      this.updateLink.bind(this));
         this.addressListId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
@@ -120,7 +128,7 @@ class Flag {
         let icon = new St.Icon({ gicon: gicon,
                                  icon_size: 32 });
 
-        let button= new St.Button({ style_class: 'window-button',
+        let button= new St.Button({ style_class: 'panel-button',
                                     reactive: true,
                                     can_focus: true,
                                     track_hover: true,
@@ -224,8 +232,10 @@ class Flag {
         let [x, y, mod] =global.get_pointer();
         this.dictProxy.translateWordsRemote(this.text, x, y);
 
-        let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, this.moveWindow.bind(this));
-        GLib.Source.set_name_by_id(id, 'dict moveWindow');
+        if (this.windowFollowPointer) {
+            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, this.moveWindow.bind(this));
+            GLib.Source.set_name_by_id(id, 'dict moveWindow');
+        }
     }
 
     moveWindow() {
@@ -345,6 +355,15 @@ class Flag {
                               () => { this.trigger = !this.trigger;
                                       this._gsettings.set_boolean(TRIGGER_STATE, this.trigger);
                               });
+        Main.wm.addKeybinding(SHOW_POPUP_WINDOW,
+                              this._gsettings,
+                              Meta.KeyBindingFlags.NONE,
+                              ModeType.ALL,
+                              () => {
+                                  if (this.text == null)
+                                      this.text = "";
+                                  this.showDict();
+                              });
     }
 
     getWM() {
@@ -356,6 +375,7 @@ class Flag {
 
     destroy(){
         Main.wm.removeKeybinding(HOTKEY);
+        Main.wm.removeKeybinding(SHOW_POPUP_WINDOW);
 
         if (this._flagWatchId) {
             Mainloop.source_remove(this._flagWatchId);
@@ -376,9 +396,13 @@ class Flag {
             global.display.disconnect(this.removeNotificaionId);
             this.removeNotificaionId = 0;
         }
-        if (this.addressListId !=0) {
+        if (this.addressListId != 0) {
             this._gsettings.disconnect(this.addressListId);
             this.addressListId = 0;
+        }
+        if (this.windowFollowPointerID != 0) {
+            this._gsettings.disconnect(this.windowFollowPointerID);
+            this.windowFollowPointerID = 0;
         }
 
         try {
@@ -386,7 +410,7 @@ class Flag {
         } catch (e) {
             return;
         }
-        this.dictProxy.closeDictRemote();
+        //this.dictProxy.closeDictRemote();
     }
 }
 

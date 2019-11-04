@@ -14,6 +14,7 @@ const TOP_ICON = 'top-icon';
 const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
 const LANGUAGE = 'language';
 const ENABLE_WEB = 'enable-web';
+const WINDOW_FOLLOW_POINTER = 'window-follow-pointer';
 
 const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ]
 let gsettings;
@@ -41,16 +42,17 @@ class buildUi {
         });
         vbox.set_size_request(550, 350);
 
-        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10 });
+        this.addBoldTextToBox("Shortcut Keys", vbox);
+        vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
         let info = new Gtk.Label({xalign: 0});
-        info.set_markup("<b>Shortcut Key</b>");
-        hbox.pack_start(info, true, true, 0);
-        info = new Gtk.Label({xalign: 1});
         info.set_markup("Use key <b>Ctrl+Alt+j</b> to toggle popup icon function");
-        hbox.add(info);
-        vbox.add(hbox);
+        vbox.add(info);
+        info = new Gtk.Label({xalign: 0});
+        info.set_markup("Use key <b>Ctrl+Alt+o</b> to show popup window");
+        vbox.add(info);
 
         vbox.add(this.addItemSwitch("<b>Show top icon</b>", TOP_ICON));
+        vbox.add(this.addItemSwitch("<b>Popup window follow pointer</b>", WINDOW_FOLLOW_POINTER));
 
         vbox.add(this.addLanguageCombo());
 

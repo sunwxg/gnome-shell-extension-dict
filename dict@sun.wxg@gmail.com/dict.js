@@ -184,15 +184,17 @@ class Dict {
         scroll_window.add(this.shell);
         this.shell.scroll_window = scroll_window;
 
-        let manager = new Webkit.WebsiteDataManager({base_cache_directory: '/dev/null',
-                                                     base_data_directory: '/dev/null',
-                                                     disk_cache_directory: '/dev/null',
-                                                     indexeddb_directory: '/dev/null',
-                                                     local_storage_directory: '/dev/null',
-                                                     offline_application_cache_directory: '/dev/null',
-                                                     websql_directory: '/dev/null' });
+        let cacheDir = '/run/dict';
+        let manager = new Webkit.WebsiteDataManager({base_cache_directory:                cacheDir,
+                                                     base_data_directory:                 cacheDir,
+                                                     disk_cache_directory:                cacheDir,
+                                                     indexeddb_directory:                 cacheDir,
+                                                     local_storage_directory:             cacheDir,
+                                                     offline_application_cache_directory: cacheDir,
+                                                     websql_directory:                    cacheDir});
 
         let context = Webkit.WebContext.new_with_website_data_manager(manager);
+        context.get_cookie_manager().set_accept_policy(Webkit.CookieAcceptPolicy.ALWAYS);
         this.web_view = Webkit.WebView.new_with_context(context);
         let settings = this.web_view.get_settings();
         settings.set_enable_page_cache(false);
@@ -417,6 +419,8 @@ class Dict {
             this.historyButton.set_active(false);
             this.window.hide();
         } else {
+            if (this.words == null)
+                this.words = "";
             this._translateWords(this.words, null, null, false);
         }
     }
