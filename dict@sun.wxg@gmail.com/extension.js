@@ -362,7 +362,7 @@ class Flag {
                               () => {
                                   if (this.text == null)
                                       this.text = "";
-                                  this.showDict();
+                                  this.hideDict();
                               });
     }
 
