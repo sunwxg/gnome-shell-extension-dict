@@ -108,6 +108,7 @@ class Flag {
                                                      this.updateLink.bind(this));
         this.addressListId = this._gsettings.connect("changed::" + LOAD_IMAGE,
                                                      this.updateLink.bind(this));
+
         try {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
@@ -165,6 +166,21 @@ class Flag {
             this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
         }
 */
+
+        this.windowCenter = false;
+
+        this.windowCreatedId = global.display.connect('window-created', (display, window) => {
+            if (window.title == 'Dict')
+                this.moveWindow(window);
+        });
+
+        this.restackedId = global.display.connect('restacked', () => {
+            let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
+            for (let i = 0; i < windows.length; i++) {
+                if (windows[i].title == 'Dict')
+                    this.moveWindow(windows[i]);
+            }
+        });
 
         this.removeNotificaionId = global.display.connect('window-demands-attention',
                                                           this._onWindowDemandsAttention.bind(this));
@@ -229,28 +245,29 @@ class Flag {
             return;
         }
 
+        this.windowCenter = false;
         let [x, y, mod] =global.get_pointer();
         this.dictProxy.translateWordsRemote(this.text, x, y);
-
-        if (this.windowFollowPointer) {
-            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, this.moveWindow.bind(this));
-            GLib.Source.set_name_by_id(id, 'dict moveWindow');
-        }
     }
 
-    moveWindow() {
-        let currentWorkspace = this.getWM().get_active_workspace();
-        let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
-        for (let i = 0; i < windows.length; i++) {
-            if (windows[i].title == 'Dict' && windows[i].has_focus()) {
-                windows[i].change_workspace(currentWorkspace);
-                let [x, y] = this.moveToPosition(windows[i]);
-                windows[i].move_frame(true, x, y);
-                return GLib.SOURCE_REMOVE;
-            }
-        }
+    moveWindow(window) {
+        if (!this.windowFollowPointer)
+            return;
 
-        return GLib.SOURCE_CONTINUE;
+        let currentWorkspace = this.getWM().get_active_workspace();
+        window.change_workspace(currentWorkspace);
+        let [x, y] = this.windowCenter ? this.moveToCenter(window) : this.moveToPosition(window);
+        window.move_frame(false, x, y);
+    }
+
+    moveToCenter(window) {
+        let workarea = window.get_work_area_current_monitor();
+        let frame = window.get_frame_rect();
+
+        let windowX = workarea.x + (workarea.width / 2) - (frame.width / 2);
+        let windowY = workarea.y + (workarea.height / 2) - (frame.height / 2);
+
+        return [Math.floor(windowX), Math.floor(windowY)];
     }
 
     moveToPosition(window) {
@@ -275,7 +292,7 @@ class Flag {
             windowY = workarea.y + workarea.height - frame.height;
         }
 
-        return [windowX, Math.floor(windowY)];
+        return [Math.floor(windowX), Math.floor(windowY)];
     }
 
     createDict() {
@@ -362,6 +379,7 @@ class Flag {
                               () => {
                                   if (this.text == null)
                                       this.text = "";
+                                  this.windowCenter = true;
                                   this.hideDict();
                               });
     }
@@ -391,6 +409,14 @@ class Flag {
         if (this.checkStClipboardId != 0) {
             Mainloop.source_remove(this.checkStClipboardId);
             this.checkStClipboardId = 0;
+        }
+        if (this.windowCreatedId != 0) {
+            global.display.disconnect(this.windowCreatedId);
+            this.windowCreatedId = 0;
+        }
+        if (this.restackedId != 0) {
+            global.display.disconnect(this.restackedId);
+            this.restackedId = 0;
         }
         if (this.removeNotificaionId != 0) {
             global.display.disconnect(this.removeNotificaionId);
@@ -456,6 +482,7 @@ class MenuButton extends PanelMenu.Button {
     }
 
     _onButtonPress(actor, event) {
+        flag.windowCenter = true;
         flag.hideDict();
     }
 
