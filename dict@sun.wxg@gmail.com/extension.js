@@ -59,7 +59,9 @@ const DictIface = '<node> \
     <arg type="i" direction="in"/> \
 </method> \
 <method name="closeDict"/> \
-<method name="hideDict"/> \
+<method name="hideDict"> \
+    <arg type="s" direction="in"/> \
+</method> \
 <signal name="windowSizeChanged"> \
     <arg type="u"/> \
     <arg type="u"/> \
@@ -345,7 +347,7 @@ class Flag {
             return;
         }
 
-        this.dictProxy.hideDictRemote();
+        this.dictProxy.hideDictRemote(this.text);
     }
 
     updateLink() {

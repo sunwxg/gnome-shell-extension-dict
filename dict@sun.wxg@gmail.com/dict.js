@@ -41,7 +41,9 @@ const DictIface = '<node> \
     <arg type="i" direction="in"/> \
 </method> \
 <method name="closeDict"/> \
-<method name="hideDict"/> \
+<method name="hideDict"> \
+    <arg type="s" direction="in"/> \
+</method> \
 <signal name="windowSizeChanged"> \
     <arg type="u"/> \
     <arg type="u"/> \
@@ -271,7 +273,7 @@ class Dict {
     configOpen() {
         //GLib.spawn_command_line_async('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
 
-        this.hideDict();
+        this.hideDict(null);
 
         let [, argv] = GLib.shell_parse_argv('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
 
@@ -283,7 +285,7 @@ class Dict {
                                               GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
                                               null);
         if (success)
-            GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, () => { this.hideDict(); });
+            GLib.child_watch_add(GLib.PRIORITY_DEFAULT, pid, () => { this.hideDict(null); });
     }
 
     _mouseMotion(widget, event) {
@@ -369,7 +371,7 @@ class Dict {
 
     _translateWords(words, x, y, addToHistory = true) {
         let oldWord = this.words;
-        this.words = words;
+        this.words = words == "" ? 'welcome' : words;
 
         if (this.enableWeb && oldWord != words) {
             this.web_view.load_uri(this._getUrl(this.words));
@@ -413,15 +415,14 @@ class Dict {
         this.application.quit();
     }
 
-    hideDict() {
+    hideDict(text) {
         if (this.active) {
             this.active = false;
             this.historyButton.set_active(false);
             this.window.hide();
         } else {
-            if (this.words == null)
-                this.words = "";
-            this._translateWords(this.words, null, null, false);
+            let words = text ? text : "";
+            this._translateWords(words, null, null, false);
         }
     }
 };
