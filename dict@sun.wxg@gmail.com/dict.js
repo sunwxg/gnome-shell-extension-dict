@@ -421,6 +421,7 @@ class Dict {
             this.historyButton.set_active(false);
             this.window.hide();
         } else {
+            this.searchEntry.set_text("");
             let words = text ? text : "";
             this._translateWords(words, null, null, false);
         }
