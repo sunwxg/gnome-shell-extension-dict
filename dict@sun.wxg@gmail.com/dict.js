@@ -366,6 +366,7 @@ class Dict {
     }
 
     translateWords(words, x, y) {
+        this.searchEntry.set_text("");
         this._translateWords(words, x, y, true);
     }
 
