@@ -1,5 +1,8 @@
 #!/usr/bin/gjs
 
+imports.gi.versions.Gio = '2.0';
+imports.gi.versions.Gtk = '3.0';
+
 const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const Gio = imports.gi.Gio;

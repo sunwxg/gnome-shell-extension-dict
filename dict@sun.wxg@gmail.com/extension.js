@@ -342,7 +342,7 @@ class Flag {
         } catch (e) {
             this.createDict();
             Mainloop.timeout_add(1000, () => {
-                this.dictProxy.hideDictRemote();
+                this.dictProxy.hideDictRemote(this.text);
                 return GLib.SOURCE_REMOVE});
             return;
         }
