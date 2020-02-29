@@ -218,8 +218,8 @@ var History = class History {
 
         let box = builder.get_object('list_row');
         let row = builder.get_object('row_text');
-        row.set_label(text);
-        box.rowText = text;
+        row.set_label(text.substring(0, 20));
+        box.rowText = text.substring(0, 20);
         box.star = star;
 
         return box;

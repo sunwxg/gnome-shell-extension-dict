@@ -141,8 +141,8 @@ class Flag {
 
         Main.layoutManager.addChrome(this.actor);
 
-        this.text = null;
-        this.oldText = null;
+        this.text = "welcome";
+        this.oldText = "welcome";
 
         this.checkStClipboardId = 0;
         this.checkClipboardId = 0;
