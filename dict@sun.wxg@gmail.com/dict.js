@@ -425,7 +425,10 @@ class Dict {
             this.historyButton.set_active(false);
             this.window.hide();
         } else {
-            this.searchEntry.set_text("");
+            if (this.searchEntry.visible) {
+                this.searchEntry.set_text("");
+                this.searchEntry.grab_focus_without_selecting();
+            }
             let words = text ? text : "";
             this._translateWords(words, null, null, false);
         }
