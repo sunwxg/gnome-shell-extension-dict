@@ -143,31 +143,16 @@ class Flag {
 
         this.text = "welcome";
         this.oldText = "welcome";
-
-        this.checkStClipboardId = 0;
-        this.checkClipboardId = 0;
-        this._flagWatchId = 0;
-
         this.stClipboard = St.Clipboard.get_default();
-        this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT,
-                                                       this.checkStClipboard.bind(this));
-        GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
-/*
-        if (Meta.is_wayland_compositor()) {
-            this.stClipboard = St.Clipboard.get_default();
-            this.checkStClipboardId = Mainloop.timeout_add(CHECK_CLIPBOARD_TIMEOUT,
-                                                           this.checkStClipboard.bind(this));
-            GLib.Source.set_name_by_id(this.checkStClipboardId, '[gnome-shell] this.checkStClipboardId');
-        } else {
-            if (isLess30()){
-                let display = Gdk.Display.get_default();
-                this.clipboard = Gtk.Clipboard.get_default(display);
-            } else {
-                this.clipboard = Gtk.Clipboard.get('PRIMARY');
-            }
-            this.checkClipboardId = this.clipboard.connect("owner-change", this.checkClipboard.bind(this));
-        }
-*/
+
+        this._flagWatchId = 0;
+        this._selectionChangedId = 0;
+
+        this._selectionChangedId = global.display.get_selection().connect('owner-changed', (sel, type, source) => {
+            if(type != St.ClipboardType.PRIMARY)
+                return;
+            this.checkStClipboard();
+        });
 
         this.windowCenter = false;
 
@@ -202,8 +187,6 @@ class Flag {
                     this.showFlag();
                 }
             });
-
-        return GLib.SOURCE_CONTINUE;
     }
 
     checkClipboard(clipboard, event) {
@@ -404,13 +387,9 @@ class Flag {
 
         Main.layoutManager.removeChrome(this.actor);
 
-        if (this.checkClipboardId != 0) {
-            this.clipboard.disconnect(this.checkClipboardId);
-            this.checkClipboardId = 0;
-        }
-        if (this.checkStClipboardId != 0) {
-            Mainloop.source_remove(this.checkStClipboardId);
-            this.checkStClipboardId = 0;
+        if(this._selectionChangedId) {
+            global.display.get_selection().disconnect(this._selectionChangedId);
+            this._selectionChangedId = 0;
         }
         if (this.windowCreatedId != 0) {
             global.display.disconnect(this.windowCreatedId);
