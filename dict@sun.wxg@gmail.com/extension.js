@@ -14,8 +14,6 @@ const Gettext = imports.gettext.domain('gnome-shell-extensions');
 const _ = Gettext.gettext;
 
 const Main = imports.ui.main;
-const MessageTray = imports.ui.messageTray;
-const Tweener = imports.ui.tweener;
 const PanelMenu = imports.ui.panelMenu;
 const Conf = imports.misc.config;
 
