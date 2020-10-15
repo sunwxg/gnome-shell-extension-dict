@@ -279,9 +279,9 @@ class Flag {
     }
 
     createDict() {
-        let process = Gio.SubprocessLauncher.new(Gio.SubprocessFlags.INHERIT_FDS);
-        process.set_flags(Gio.SubprocessFlags.INHERIT_FDS);
-        process.spawnv([Me.imports.searchPath + '/dict.js']);
+        let file = Me.imports.searchPath + '/dict.js';
+        this._app = Gio.AppInfo.create_from_commandline(file, 'dict', Gio.AppInfoCreateFlags.NONE);
+        this._app.launch([], null);
     }
 
     showFlag() {
