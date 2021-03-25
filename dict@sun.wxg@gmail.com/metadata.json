@@ -4,11 +4,8 @@
   "name": "Screen word translate",
   "original-authors": "sun.wxg@gmail.com",
   "shell-version": [
-    "3.34",
-    "3.36",
-    "3.38"
+    "40"
   ],
   "url": "https://github.com/sunwxg/gnome-shell-extension-dict",
-  "uuid": "dict@sun.wxg@gmail.com",
-  "version": 31
+  "uuid": "dict@sun.wxg@gmail.com"
 }
