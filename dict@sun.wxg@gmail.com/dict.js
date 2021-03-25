@@ -15,8 +15,6 @@ const Util = imports.util;
 const History = imports.history.History;
 const Store = imports.store.Store;
 
-const WEB_SITE = 'https://translate.google.com/#view=home&op=translate&sl=auto&tl=auto&text=%WORD';
-
 const DBusIface = '<node> \
 <interface name="org.freedesktop.DBus"> \
 <method name="GetNameOwner"> \
@@ -36,6 +34,7 @@ const DictIface = '<node> \
 </method> \
 <method name="linkUpdate"> \
     <arg type="s" direction="in"/> \
+    <arg type="b" direction="in"/> \
     <arg type="b" direction="in"/> \
     <arg type="b" direction="in"/> \
 </method> \
@@ -60,6 +59,7 @@ const TRIGGER_STATE = 'trigger-state';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
+const MOBILE_AGENT = 'mobile-agent';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
@@ -67,8 +67,11 @@ const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
 const LANGUAGE = 'language';
 const ENABLE_WEB = 'enable-web';
 
+const USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Mobile Safari/537.36";
+
 class Dict {
     constructor(words) {
+        this.mobileAgent = false;
         this.enableJS = false;
         this.loadImage = false;
         this.active = false;
@@ -82,6 +85,35 @@ class Dict {
 
         this.path = GLib.path_get_dirname(System.programInvocationName);
 
+
+        this.enableTransShell = this._gsettings.get_boolean(ENABLE_TRANSLATE_SHELL);
+        this.enableTransShellId = this._gsettings.connect("changed::" + ENABLE_TRANSLATE_SHELL,
+                                                          this._updateNoteBook.bind(this));
+
+        this.mobileAgent = this._gsettings.get_boolean(MOBILE_AGENT);
+        this.mobileAgentId = this._gsettings.connect("changed::" + MOBILE_AGENT,
+                                                  () => { this._update(); });
+
+        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
+        this.enableJSId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
+                                                  () => { this._update(); });
+
+        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
+        this.loadImageId = this._gsettings.connect("changed::" + LOAD_IMAGE,
+                                                  () => { this._update(); });
+
+        this.url = this._gsettings.get_string(ADDRESS_ACTIVE);
+        this.addressId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
+                                                  () => { this._update(); });
+
+        this.language = this._gsettings.get_string(LANGUAGE);
+        this.languageId = this._gsettings.connect("changed::" + LANGUAGE,
+                                                  () => { this.language = this._gsettings.get_string(LANGUAGE); });
+
+        this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
+        this.enableWebId = this._gsettings.connect("changed::" + ENABLE_WEB,
+                                                   this._updateNoteBook.bind(this));
+
         this.application = new Gtk.Application({application_id: "org.gnome.Dict"});
         this.application.connect('activate', this._onActivate.bind(this));
         this.application.connect('startup', this._onStartup.bind(this));
@@ -91,30 +123,6 @@ class Dict {
         Gio.DBus.session.own_name('org.gnome.Dict',
                                   Gio.BusNameOwnerFlags.REPLACE,
                                   null, null);
-
-        this.enableTransShell = this._gsettings.get_boolean(ENABLE_TRANSLATE_SHELL);
-        this.enableTransShellId = this._gsettings.connect("changed::" + ENABLE_TRANSLATE_SHELL,
-                                                          this._updateNoteBook.bind(this));
-
-        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
-        this.enableJSId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
-                                                  () => { this.enableJS= this._gsettings.get_boolean(ENABLE_JAVASCRIPT); });
-
-        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
-        this.loadImageId = this._gsettings.connect("changed::" + LOAD_IMAGE,
-                                                  () => { this.loadImage= this._gsettings.get_boolean(LOAD_IMAGE); });
-
-        this.language = this._gsettings.get_string(LANGUAGE);
-        this.languageId = this._gsettings.connect("changed::" + LANGUAGE,
-                                                  () => { this.language = this._gsettings.get_string(LANGUAGE); });
-
-        this.url = this._gsettings.get_string(ADDRESS_ACTIVE);
-        this.addressId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
-                                                  () => { this.url = this._gsettings.get_string(ADDRESS_ACTIVE); });
-
-        this.enableWeb = this._gsettings.get_boolean(ENABLE_WEB);
-        this.enableWebId = this._gsettings.connect("changed::" + ENABLE_WEB,
-                                                   this._updateNoteBook.bind(this));
     }
 
     _onActivate() {
@@ -206,6 +214,7 @@ class Dict {
         settings.set_enable_offline_web_application_cache(false);
         settings.set_enable_javascript(this.enableJS);
         settings.set_auto_load_images(this.loadImage);
+        this._setMobileAgent();
         this.web_view.set_settings(settings);
 
         //this.web_view.connect('load_changed', (w, event) => {
@@ -394,18 +403,34 @@ class Dict {
             this.history.addWord(words);
         }
 
+        if (this.focusOutId == 0)
+            this.window.hide();
+
         this.notebook.prev_page();
         this.window.show_all();
         this.active = true;
     }
 
-    linkUpdate(link, enableJS, loadImage) {
-        this.url = link;
-        this.enableJS = enableJS;
+    _setMobileAgent() {
         let settings = this.web_view.get_settings();
+        if (this.mobileAgent)
+            settings.set_user_agent(USER_AGENT);
+        else
+            settings.set_user_agent(null);
+    }
+
+    _update() {
+        let settings = this.web_view.get_settings();
+
+        this.url = this._gsettings.get_string(ADDRESS_ACTIVE);
+
+        this.mobileAgent = this._gsettings.get_boolean(MOBILE_AGENT);
+        this._setMobileAgent();
+
+        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
         settings.set_enable_javascript(this.enableJS);
 
-        this.loadImage = loadImage;
+        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
         settings.set_auto_load_images(this.loadImage);
 
         this.web_view.set_settings(settings);
@@ -431,6 +456,10 @@ class Dict {
             }
             let words = text ? text : "";
             this._translateWords(words, null, null, false);
+        }
+        if (this.focusOutId == 0) {
+            this.window.show_all();
+            this.active = true;
         }
     }
 };

@@ -66,6 +66,12 @@
       <description>
       </description>
     </key>
+    <key name="mobile-agent" type="b">
+      <default>true</default>
+      <summary>Use mobile agent</summary>
+      <description>
+      </description>
+    </key>
     <key name="enable-javascript" type="b">
       <default>true</default>
       <summary>Enable javascript</summary>

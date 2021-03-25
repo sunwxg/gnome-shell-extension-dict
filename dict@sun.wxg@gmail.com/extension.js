@@ -32,6 +32,7 @@ const TRIGGER_STATE = 'trigger-state';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
+const MOBILE_AGENT = 'mobile-agent';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
@@ -49,6 +50,7 @@ const DictIface = '<node> \
 </method> \
 <method name="linkUpdate"> \
     <arg type="s" direction="in"/> \
+    <arg type="b" direction="in"/> \
     <arg type="b" direction="in"/> \
     <arg type="b" direction="in"/> \
 </method> \
@@ -102,20 +104,11 @@ class Flag {
             this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
         });
 
-        this.addressListId = this._gsettings.connect("changed::" + ADDRESS_ACTIVE,
-                                                     this.updateLink.bind(this));
-        this.addressListId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
-                                                     this.updateLink.bind(this));
-        this.addressListId = this._gsettings.connect("changed::" + LOAD_IMAGE,
-                                                     this.updateLink.bind(this));
-
         try {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
             this.createDict();
         }
-
-        this.updateLink();
 
         this.trigger = this._gsettings.get_boolean(TRIGGER_STATE);
 
@@ -159,13 +152,13 @@ class Flag {
                 this.moveWindow(window);
         });
 
-        this.restackedId = global.display.connect('restacked', () => {
-            let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
-            for (let i = 0; i < windows.length; i++) {
-                if (windows[i].title == 'Dict')
-                    this.moveWindow(windows[i]);
-            }
-        });
+        //this.restackedId = global.display.connect('restacked', () => {
+            //let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
+            //for (let i = 0; i < windows.length; i++) {
+                //if (windows[i].title == 'Dict')
+                    //this.moveWindow(windows[i]);
+            //}
+        //});
 
         this.removeNotificaionId = global.display.connect('window-demands-attention',
                                                           this._onWindowDemandsAttention.bind(this));
@@ -329,14 +322,6 @@ class Flag {
         }
 
         this.dictProxy.hideDictRemote(this.text);
-    }
-
-    updateLink() {
-        this.link = this._gsettings.get_string(ADDRESS_ACTIVE);
-        this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
-        this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
-
-        this.dictProxy.linkUpdateRemote(this.link, this.enableJS, this.loadImage);
     }
 
     windowSizeChanged(proxy, senderName, [width, height]) {

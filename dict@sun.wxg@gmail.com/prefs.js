@@ -8,6 +8,7 @@ const LANGUAGES_LIST = Me.imports.language.LANGUAGES_LIST;
 const SCHEMA_NAME = 'org.gnome.shell.extensions.dict';
 const ADDRESS_LIST = 'address-list';
 const ADDRESS_ACTIVE = 'address-active';
+const MOBILE_AGENT = 'mobile-agent';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
@@ -62,6 +63,7 @@ class buildUi {
 
         vbox.add(this.addItemSwitch("<b>Enable Web translate</b>", ENABLE_WEB));
         vbox.add(new Gtk.HSeparator({margin_bottom: 5, margin_top: 5}));
+        vbox.add(this.addMobileAgent());
         vbox.add(this.addEnableJS());
         vbox.add(this.addLoadImage());
 
@@ -120,6 +122,19 @@ class buildUi {
         });
 
         return combo;
+    }
+
+    addMobileAgent() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_left: 10 });
+        let setting_label = new Gtk.Label({ label: "Use mobile agent", xalign: 0 });
+        this.settingMobileAgent = new Gtk.Switch({ active: gsettings.get_boolean(MOBILE_AGENT) });
+
+        this.settingMobileAgent.connect('notify::active', (button) => { gsettings.set_boolean(MOBILE_AGENT, button.active); });
+
+        hbox.pack_start(setting_label, true, true, 0);
+        hbox.add(this.settingMobileAgent);
+
+        return hbox;
     }
 
     addEnableJS() {
