@@ -85,7 +85,6 @@ class buildUi {
             if (entry.get_text() == addressActive) {
                 radio.active = true;
             }
-            print("wxg: ", radio.active, entry.get_text(), addressActive);
         }
 
         this.widget.append(vbox);
