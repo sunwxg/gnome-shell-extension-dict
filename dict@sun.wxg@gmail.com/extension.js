@@ -230,6 +230,9 @@ class Flag {
         if (!this.windowFollowPointer)
             return;
 
+        if (Meta.is_wayland_compositor())
+            return;
+
         let currentWorkspace = this.getWM().get_active_workspace();
         window.change_workspace(currentWorkspace);
         let [x, y] = this.windowCenter ? this.moveToCenter(window) : this.moveToPosition(window);
