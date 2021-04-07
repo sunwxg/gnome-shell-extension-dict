@@ -50,6 +50,9 @@ const DictIface = '<node> \
     <arg type="u"/> \
     <arg type="u"/> \
 </signal> \
+<signal name="pinned"> \
+    <arg type="b"/> \
+</signal> \
 </interface> \
 </node>';
 
@@ -217,13 +220,6 @@ class Dict {
         this._setMobileAgent();
         this.web_view.set_settings(settings);
 
-        //this.web_view.connect('load_changed', (w, event) => {
-            //if (event != Webkit.LoadEvent.FINISHED)
-                //return;
-
-            //this.web_view.show();
-        //});
-
         this.web_view.load_uri(this._getUrl());
     }
 
@@ -280,18 +276,11 @@ class Dict {
             if (!this.focusOutId)
                 this.focusOutId = this.window.connect('focus-out-event', this._mouseLeave.bind(this));
         }
+        this._impl.emit_signal('pinned', GLib.Variant.new('(b)', [button.get_active()]));
     }
 
     configOpen() {
-        //GLib.spawn_command_line_async('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
-
-        this.hideDict(null);
-
         let [, argv] = GLib.shell_parse_argv('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
-
-        //GLib.spawn_sync(null, argv, null,
-                        //GLib.SpawnFlags.SEARCH_PATH,
-                        //null);
 
         let [success, pid] = GLib.spawn_async(null, argv, null,
                                               GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
@@ -403,9 +392,6 @@ class Dict {
             this.history.addWord(words);
         }
 
-        if (this.focusOutId == 0)
-            this.window.hide();
-
         this.notebook.prev_page();
         this.window.show_all();
         this.active = true;
@@ -445,6 +431,9 @@ class Dict {
     }
 
     hideDict(text) {
+        if (this.focusOutId == 0)
+            return;
+
         if (this.active) {
             this.active = false;
             this.historyButton.set_active(false);
@@ -456,10 +445,6 @@ class Dict {
             }
             let words = text ? text : "";
             this._translateWords(words, null, null, false);
-        }
-        if (this.focusOutId == 0) {
-            this.window.show_all();
-            this.active = true;
         }
     }
 };

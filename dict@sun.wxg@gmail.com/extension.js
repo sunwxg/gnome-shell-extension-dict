@@ -66,6 +66,9 @@ const DictIface = '<node> \
     <arg type="u"/> \
     <arg type="u"/> \
 </signal> \
+<signal name="pinned"> \
+    <arg type="b"/> \
+</signal> \
 </interface> \
 </node>';
 const DictProxy = Gio.DBusProxy.makeProxyWrapper(DictIface);
@@ -96,6 +99,7 @@ class Flag {
                                        '/org/freedesktop/DBus');
 
         this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
+        this.dictProxy.connectSignal('pinned', this.pinned.bind(this));
 
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
 
@@ -111,6 +115,7 @@ class Flag {
         }
 
         this.trigger = this._gsettings.get_boolean(TRIGGER_STATE);
+        this.pin = false;
 
         this.actor = new St.BoxLayout({ reactive: true,
                                     can_focus: true,
@@ -147,18 +152,17 @@ class Flag {
 
         this.windowCenter = false;
 
-        this.windowCreatedId = global.display.connect('window-created', (display, window) => {
-            if (window.title == 'Dict')
-                this.moveWindow(window);
+        this.monitorId = global.display.connect('restacked', () => {
+            let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
+            for (let i = 0; i < windows.length; i++) {
+                if (windows[i].title == 'Dict' && windows[i].has_focus())
+                    this.moveWindow(windows[i]);
+            }
         });
-
-        //this.restackedId = global.display.connect('restacked', () => {
-            //let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
-            //for (let i = 0; i < windows.length; i++) {
-                //if (windows[i].title == 'Dict')
-                    //this.moveWindow(windows[i]);
-            //}
-        //});
+            //this.monitorId = global.display.connect('window-created', (display, window) => {
+                //if (window.title == 'Dict')
+                    //this.moveWindow(window);
+            //});
 
         this.removeNotificaionId = global.display.connect('window-demands-attention',
                                                           this._onWindowDemandsAttention.bind(this));
@@ -222,15 +226,26 @@ class Flag {
         }
 
         this.windowCenter = false;
+        if (this.pin) {
+            let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
+            for (let i = 0; i < windows.length; i++) {
+                if (windows[i].title == 'Dict')
+                    this.moveWindow(windows[i]);
+            }
+        }
         let [x, y, mod] =global.get_pointer();
         this.dictProxy.translateWordsRemote(this.text, x, y);
     }
 
     moveWindow(window) {
-        if (!this.windowFollowPointer)
+        if (this.pin) {
+            let currentWorkspace = this.getWM().get_active_workspace();
+            window.change_workspace(currentWorkspace);
+            window.activate(global.get_current_time());
             return;
+        }
 
-        if (Meta.is_wayland_compositor())
+        if (!this.windowFollowPointer)
             return;
 
         let currentWorkspace = this.getWM().get_active_workspace();
@@ -293,7 +308,6 @@ class Flag {
 
         this.actor.set_position(x + 10, y);
 
-        //Main.uiGroup.set_child_above_sibling(this.actor, null);
         this.actor.show();
 
         if (this._flagWatchId) {
@@ -330,6 +344,10 @@ class Flag {
     windowSizeChanged(proxy, senderName, [width, height]) {
         this._gsettings.set_int(WINDOW_WIDTH, width);
         this._gsettings.set_int(WINDOW_HEIGHT, height);
+    }
+
+    pinned(proxy, senderName, [pin]) {
+        this.pin = pin;
     }
 
     addKeybinding() {
@@ -373,27 +391,19 @@ class Flag {
 
         Main.layoutManager.removeChrome(this.actor);
 
-        if(this._selectionChangedId) {
+        if (this._selectionChangedId > 0) {
             global.display.get_selection().disconnect(this._selectionChangedId);
             this._selectionChangedId = 0;
         }
-        if (this.windowCreatedId != 0) {
-            global.display.disconnect(this.windowCreatedId);
-            this.windowCreatedId = 0;
+        if (this.monitorId > 0) {
+            global.display.disconnect(this.monitorId);
+            this.monitorId = 0;
         }
-        if (this.restackedId != 0) {
-            global.display.disconnect(this.restackedId);
-            this.restackedId = 0;
-        }
-        if (this.removeNotificaionId != 0) {
+        if (this.removeNotificaionId > 0) {
             global.display.disconnect(this.removeNotificaionId);
             this.removeNotificaionId = 0;
         }
-        if (this.addressListId != 0) {
-            this._gsettings.disconnect(this.addressListId);
-            this.addressListId = 0;
-        }
-        if (this.windowFollowPointerID != 0) {
+        if (this.windowFollowPointerID > 0) {
             this._gsettings.disconnect(this.windowFollowPointerID);
             this.windowFollowPointerID = 0;
         }
@@ -403,7 +413,6 @@ class Flag {
         } catch (e) {
             return;
         }
-        //this.dictProxy.closeDictRemote();
     }
 }
 
@@ -435,10 +444,12 @@ class MenuButton extends PanelMenu.Button {
     _addIcon() {
         let trigger = this._gsettings.get_boolean(TRIGGER_STATE);
         if (trigger) {
-            this.remove_child(this.iconDisable);
+            if (this.get_child_at_index(0) == this.iconDisable)
+                this.remove_child(this.iconDisable);
             this.add_child(this.iconEnable);
         } else {
-            this.remove_child(this.iconEnable);
+            if (this.get_child_at_index(0) == this.iconEnable)
+                this.remove_child(this.iconEnable);
             this.add_child(this.iconDisable);
         }
     }
