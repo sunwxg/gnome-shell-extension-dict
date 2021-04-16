@@ -57,7 +57,7 @@ class buildUi {
         vbox.append(this.addItemSwitch("<b>Show top icon</b>", TOP_ICON));
         vbox.append(this.addItemSwitch("<b>Popup window follow pointer</b>", WINDOW_FOLLOW_POINTER));
 
-        vbox.append(this.addLanguageCombo());
+        vbox.append(this.addLanguageDropDown());
 
         vbox.append(this.addItemSwitch(
             "<b>Enable translate-shell</b> (Install translate-shell package first)",
@@ -102,31 +102,28 @@ class buildUi {
         return hbox;
     }
 
-    addLanguageCombo() {
+    addLanguageDropDown() {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
         let setting_label = new Gtk.Label({  xalign: 0, hexpand: true });
         setting_label.set_markup("<b>Select target language</b>");
         hbox.append(setting_label);
-        hbox.append(this.languageCombo());
+        hbox.append(this.languageDropDown());
 
         return hbox;
     }
 
-    languageCombo() {
-        let combo = new Gtk.ComboBoxText();
-        combo.set_entry_text_column(0);
+    languageDropDown() {
+        let dropDown = Gtk.DropDown.new_from_strings(Object.values(LANGUAGES_LIST));
+        let language = gsettings.get_string(LANGUAGE);
+        dropDown.set_selected(Object.keys(LANGUAGES_LIST).findIndex((element) => element == language));
 
-        for (let l in LANGUAGES_LIST) {
-            combo.append(l, LANGUAGES_LIST[l]);
-        }
-        combo.set_active_id(gsettings.get_string(LANGUAGE));
-
-        combo.connect('changed', () => {
-            gsettings.set_string(LANGUAGE, combo.get_active_id());
+        dropDown.connect("notify::selected", () => {
+            let value = dropDown.get_selected_item().get_string();
+            gsettings.set_string(LANGUAGE, Object.keys(LANGUAGES_LIST).find(key => LANGUAGES_LIST[key] == value));
             this.addressUpdate();
         });
 
-        return combo;
+        return dropDown;
     }
 
     addMobileAgent() {
