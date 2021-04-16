@@ -104,7 +104,7 @@ class buildUi {
 
     addLanguageCombo() {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
-        let setting_label = new Gtk.Label({  xalign: 0 });
+        let setting_label = new Gtk.Label({  xalign: 0, hexpand: true });
         setting_label.set_markup("<b>Select target language</b>");
         hbox.append(setting_label);
         hbox.append(this.languageCombo());
@@ -252,7 +252,7 @@ class buildUi {
             label.set_text(address);
             hbox.append(label);
         } else {
-            let entry = new Gtk.Entry({ margin_start: 10 });
+            let entry = new Gtk.Entry({ margin_start: 10, hexpand: true });
             entry.set_text(address);
             entry.connect('changed', this.addressUpdate.bind(this));
             hbox.append(entry);
