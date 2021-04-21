@@ -338,6 +338,13 @@ class Flag {
             return;
         }
 
+        if (this.pin) {
+            let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
+            for (let i = 0; i < windows.length; i++) {
+                if (windows[i].title == 'Dict')
+                    this.moveWindow(windows[i]);
+            }
+        }
         this.dictProxy.hideDictRemote(this.text);
     }
 
