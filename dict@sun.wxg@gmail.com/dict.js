@@ -50,7 +50,9 @@ const DictIface = '<node> \
     <arg type="u"/> \
     <arg type="u"/> \
 </signal> \
-<property name="Pinned" type="b" access="readwrite"/> \
+<signal name="pinned"> \
+    <arg type="b"/> \
+</signal> \
 </interface> \
 </node>';
 
@@ -163,8 +165,8 @@ class Dict {
         this.historyButton = this.builder.get_object('history_button');
         this.historyButton.connect('toggled', this.historyToggled.bind(this));
 
-        this.pinToggleButton = this.builder.get_object('pin_button');
-        this.pinToggleButton.connect('toggled', this.pinToggled.bind(this));
+        let pinToggleButton = this.builder.get_object('pin_button');
+        pinToggleButton.connect('toggled', this.pinToggled.bind(this));
 
         let configButton = this.builder.get_object('config_button');
         configButton.connect('clicked', this.configOpen.bind(this));
@@ -274,6 +276,7 @@ class Dict {
             if (!this.focusOutId)
                 this.focusOutId = this.window.connect('focus-out-event', this._mouseLeave.bind(this));
         }
+        this._impl.emit_signal('pinned', GLib.Variant.new('(b)', [button.get_active()]));
     }
 
     configOpen() {
@@ -361,10 +364,6 @@ class Dict {
             this.notebook.set_show_tabs(false);
         else
             this.notebook.set_show_tabs(true);
-    }
-
-    get Pinned() {
-        return this.pinToggleButton.get_active();
     }
 
     translateWords(words, x, y) {

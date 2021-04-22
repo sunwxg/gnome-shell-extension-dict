@@ -66,7 +66,9 @@ const DictIface = '<node> \
     <arg type="u"/> \
     <arg type="u"/> \
 </signal> \
-<property name="Pinned" type="b" access="readwrite"/> \
+<signal name="pinned"> \
+    <arg type="b"/> \
+</signal> \
 </interface> \
 </node>';
 const DictProxy = Gio.DBusProxy.makeProxyWrapper(DictIface);
@@ -91,6 +93,13 @@ function isLess30() {
 
 class Flag {
     constructor() {
+        this.dictProxy = new DictProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH);
+        this.dbusProxy = new DBusProxy(Gio.DBus.session,
+                                       'org.freedesktop.DBus',
+                                       '/org/freedesktop/DBus');
+
+        this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
+        this.dictProxy.connectSignal('pinned', this.pinned.bind(this));
 
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
 
@@ -159,13 +168,6 @@ class Flag {
                                                           this._onWindowDemandsAttention.bind(this));
 
         this.addKeybinding();
-
-        this.dictProxy = new DictProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH);
-        this.dbusProxy = new DBusProxy(Gio.DBus.session,
-                                       'org.freedesktop.DBus',
-                                       '/org/freedesktop/DBus');
-
-        this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
     }
 
     checkStClipboard() {
@@ -224,7 +226,7 @@ class Flag {
         }
 
         this.windowCenter = false;
-        if (this.dictProxy.Pinned) {
+        if (this.pin) {
             let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
             for (let i = 0; i < windows.length; i++) {
                 if (windows[i].title == 'Dict')
@@ -236,7 +238,7 @@ class Flag {
     }
 
     moveWindow(window) {
-        if (this.dictProxy.Pinned) {
+        if (this.pin) {
             let currentWorkspace = this.getWM().get_active_workspace();
             window.change_workspace(currentWorkspace);
             window.activate(global.get_current_time());
@@ -336,7 +338,7 @@ class Flag {
             return;
         }
 
-        if (this.dictProxy.Pinned) {
+        if (this.pin) {
             let windows = global.display.get_tab_list(Meta.TabList.NORMAL_ALL, null);
             for (let i = 0; i < windows.length; i++) {
                 if (windows[i].title == 'Dict')
@@ -349,6 +351,10 @@ class Flag {
     windowSizeChanged(proxy, senderName, [width, height]) {
         this._gsettings.set_int(WINDOW_WIDTH, width);
         this._gsettings.set_int(WINDOW_HEIGHT, height);
+    }
+
+    pinned(proxy, senderName, [pin]) {
+        this.pin = pin;
     }
 
     addKeybinding() {
