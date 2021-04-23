@@ -19,7 +19,6 @@ const Conf = imports.misc.config;
 
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
-const Convenience = Me.imports.convenience;
 
 const CLIPBOARD_TYPE = St.ClipboardType.CLIPBOARD;
 
@@ -94,7 +93,7 @@ function isLess30() {
 
 class Flag {
     constructor() {
-        this._gsettings = Convenience.getSettings(DICT_SCHEMA);
+        this._gsettings = ExtensionUtils.getSettings(DICT_SCHEMA);
 
         this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
         this.windowFollowPointerID = this._gsettings.connect("changed::" + WINDOW_FOLLOW_POINTER, () => {
@@ -429,7 +428,7 @@ class MenuButton extends PanelMenu.Button {
     _init() {
         super._init(0.0, _('Dict flag'));
 
-        this._gsettings = Convenience.getSettings(DICT_SCHEMA);
+        this._gsettings = ExtensionUtils.getSettings(DICT_SCHEMA);
         this.dictActive = false;
 
         let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(Me.path + '/icons/dict.png') });

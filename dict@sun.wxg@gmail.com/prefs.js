@@ -1,8 +1,8 @@
 const Gtk = imports.gi.Gtk;
 const GLib = imports.gi.GLib;
 
-const Me = imports.misc.extensionUtils.getCurrentExtension();
-const Convenience = Me.imports.convenience;
+const ExtensionUtils = imports.misc.extensionUtils;
+const Me = ExtensionUtils.getCurrentExtension();
 const LANGUAGES_LIST = Me.imports.language.LANGUAGES_LIST;
 
 const SCHEMA_NAME = 'org.gnome.shell.extensions.dict';
@@ -21,7 +21,7 @@ const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ]
 let gsettings;
 
 function init() {
-    gsettings = Convenience.getSettings(SCHEMA_NAME);
+    gsettings = ExtensionUtils.getSettings(SCHEMA_NAME);
 }
 
 function buildPrefsWidget() {
