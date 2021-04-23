@@ -53,6 +53,7 @@ const DictIface = '<node> \
 <signal name="pinned"> \
     <arg type="b"/> \
 </signal> \
+<property name="Pin" type="b" access="readwrite"/> \
 </interface> \
 </node>';
 
@@ -165,8 +166,8 @@ class Dict {
         this.historyButton = this.builder.get_object('history_button');
         this.historyButton.connect('toggled', this.historyToggled.bind(this));
 
-        let pinToggleButton = this.builder.get_object('pin_button');
-        pinToggleButton.connect('toggled', this.pinToggled.bind(this));
+        this.pinToggleButton = this.builder.get_object('pin_button');
+        this.pinToggleButton.connect('toggled', this.pinToggled.bind(this));
 
         let configButton = this.builder.get_object('config_button');
         configButton.connect('clicked', this.configOpen.bind(this));
@@ -364,6 +365,10 @@ class Dict {
             this.notebook.set_show_tabs(false);
         else
             this.notebook.set_show_tabs(true);
+    }
+
+    get Pin() {
+        return this.pinToggleButton.get_active();
     }
 
     translateWords(words, x, y) {

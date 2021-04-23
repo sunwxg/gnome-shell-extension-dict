@@ -69,6 +69,7 @@ const DictIface = '<node> \
 <signal name="pinned"> \
     <arg type="b"/> \
 </signal> \
+<property name="Pin" type="b" access="readwrite"/> \
 </interface> \
 </node>';
 const DictProxy = Gio.DBusProxy.makeProxyWrapper(DictIface);
@@ -93,14 +94,6 @@ function isLess30() {
 
 class Flag {
     constructor() {
-        this.dictProxy = new DictProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH);
-        this.dbusProxy = new DBusProxy(Gio.DBus.session,
-                                       'org.freedesktop.DBus',
-                                       '/org/freedesktop/DBus');
-
-        this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
-        this.dictProxy.connectSignal('pinned', this.pinned.bind(this));
-
         this._gsettings = Convenience.getSettings(DICT_SCHEMA);
 
         this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
@@ -115,7 +108,6 @@ class Flag {
         }
 
         this.trigger = this._gsettings.get_boolean(TRIGGER_STATE);
-        this.pin = false;
 
         this.actor = new St.BoxLayout({ reactive: true,
                                     can_focus: true,
@@ -168,6 +160,15 @@ class Flag {
                                                           this._onWindowDemandsAttention.bind(this));
 
         this.addKeybinding();
+
+        this.dictProxy = new DictProxy(Gio.DBus.session, BUS_NAME, OBJECT_PATH);
+        this.dbusProxy = new DBusProxy(Gio.DBus.session,
+                                       'org.freedesktop.DBus',
+                                       '/org/freedesktop/DBus');
+
+        this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
+        this.dictProxy.connectSignal('pinned', this.pinned.bind(this));
+        this.pin = this.dictProxy.Pin;
     }
 
     checkStClipboard() {
