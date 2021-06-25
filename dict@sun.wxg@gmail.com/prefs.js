@@ -191,6 +191,7 @@ class buildUi {
     addAddressBox() {
         let addressBox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, margin_top: 10 });
         addressBox.append(this.addGoogleTranslate());
+        addressBox.append(this.addDeeplTranslate());
 
         ADDRESS.forEach( (a) => {
             addressBox.append(this.addressRow(a, true));
@@ -207,6 +208,30 @@ class buildUi {
         });
 
         return addressBox;
+    }
+
+    addDeeplTranslate() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
+
+        let radioButton = new Gtk.CheckButton({ });
+        radioButton.isDefault = true;
+        radioButton.deepl = true;
+        radioButton.connect("toggled", this.addressUpdate.bind(this));
+        radioButton.set_group(this.radioGroup);
+        hbox.append(radioButton);
+
+        let info = new Gtk.Label({xalign: 0, margin_start: 10});
+        info.set_markup("Use DeepL translate");
+        hbox.append(info);
+
+        return hbox;
+    }
+
+    deeplTranslateUrl() {
+        let language = gsettings.get_string(LANGUAGE);
+        let url = "https://www.deepl.com/translator#en/" + language + "/%WORD";
+
+        return url;
     }
 
     addGoogleTranslate() {
@@ -273,8 +298,8 @@ class buildUi {
         let addressList = [];
         let addressActive = '';
         for (let row = this.addressListBox.get_first_child();
-             row != null;
-             row = row.get_next_sibling()) {
+            row != null;
+            row = row.get_next_sibling()) {
             let radio = row.get_first_child();
             let entry = radio.get_next_sibling();
             let link = entry.get_text();
@@ -284,7 +309,9 @@ class buildUi {
             if (radio.active) {
                 if (radio.google)
                     addressActive = this.googleTranslateUrl();
-                else
+                else if (radio.deepl) {
+                    addressActive = this.deeplTranslateUrl();
+                } else
                     addressActive = link;
             }
         }
@@ -300,4 +327,3 @@ class buildUi {
         box.append(txt);
     }
 }
-
