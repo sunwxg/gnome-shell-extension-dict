@@ -18,6 +18,10 @@ const ENABLE_WEB = 'enable-web';
 const WINDOW_FOLLOW_POINTER = 'window-follow-pointer';
 
 const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ]
+const ADRRESS_ENTRY_MAPPING = new Map();
+ADDRESS.forEach(a => ADRRESS_ENTRY_MAPPING.set(a, a));
+const GOOGLE_LABEL_TEXT = "Use google translate";
+const DEEPL_LABEL_TEXT = "Use DeepL translate";
 let gsettings;
 
 function init() {
@@ -76,13 +80,17 @@ class buildUi {
         vbox.append(this.addAddButton());
         vbox.append(this.addressListBox);
 
+        ADRRESS_ENTRY_MAPPING.set(GOOGLE_LABEL_TEXT, this.googleTranslateUrl());
+        ADRRESS_ENTRY_MAPPING.set(DEEPL_LABEL_TEXT, this.deeplTranslateUrl())
+
+
         let addressActive = gsettings.get_string(ADDRESS_ACTIVE);
         for (let child = this.addressListBox.get_first_child();
              child != null;
              child = child.get_next_sibling()) {
             let radio = child.get_first_child();
             let entry = radio.get_next_sibling();
-            if (entry.get_text() == addressActive) {
+            if (ADRRESS_ENTRY_MAPPING.get(entry.get_text()) == addressActive) {
                 radio.active = true;
             }
         }
@@ -221,7 +229,7 @@ class buildUi {
         hbox.append(radioButton);
 
         let info = new Gtk.Label({xalign: 0, margin_start: 10});
-        info.set_markup("Use DeepL translate");
+        info.set_markup(DEEPL_LABEL_TEXT);
         hbox.append(info);
 
         return hbox;
@@ -246,7 +254,7 @@ class buildUi {
         hbox.append(radioButton);
 
         let info = new Gtk.Label({xalign: 0, margin_start: 10});
-        info.set_markup("Use google translate");
+        info.set_markup(GOOGLE_LABEL_TEXT);
         hbox.append(info);
 
         return hbox;
