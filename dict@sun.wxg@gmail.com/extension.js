@@ -2,8 +2,6 @@
 
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Gtk = imports.gi.Gtk;
-const Gdk = imports.gi.Gdk;
 const St = imports.gi.St;
 const Meta = imports.gi.Meta;
 const Shell = imports.gi.Shell;
@@ -218,7 +216,7 @@ class Flag {
         } catch (e) {
             this.createDict();
             let [x, y, mod] =global.get_pointer();
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+            this._showDictId = Mainloop.timeout_add(1000, () => {
                 this.dictProxy.translateWordsRemote(this.text, x, y);
                 return GLib.SOURCE_REMOVE});
 
@@ -332,7 +330,7 @@ class Flag {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
             this.createDict();
-            Mainloop.timeout_add(1000, () => {
+            this._hideDictId = Mainloop.timeout_add(1000, () => {
                 this.dictProxy.hideDictRemote(this.text);
                 return GLib.SOURCE_REMOVE});
             return;
@@ -394,6 +392,16 @@ class Flag {
         if (this._flagWatchId) {
             Mainloop.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
+        }
+
+        if (this._showDictId) {
+            Mainloop.source_remove(this._showDictId);
+            this._showDictId = 0;
+        }
+
+        if (this._hideDictId) {
+            Mainloop.source_remove(this._hideDictId);
+            this._hideDictId= 0;
         }
 
         Main.layoutManager.removeChrome(this.actor);
