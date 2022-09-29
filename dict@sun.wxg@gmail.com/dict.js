@@ -131,7 +131,7 @@ class Dict {
     }
 
     _onActivate() {
-        //this.window.show_all();
+        this.window.show_all();
     }
 
     _onStartup() {
@@ -387,12 +387,6 @@ class Dict {
 
         if (this.enableTransShell)
             this._shellTranslateWord();
-        else {
-            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-                this._shellTranslateWord();
-                return GLib.SOURCE_REMOVE;
-            });
-        }
 
         if (addToHistory) {
             this.history.addWord(words);
