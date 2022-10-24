@@ -22,10 +22,8 @@ const ADRRESS_ENTRY_MAPPING = new Map();
 const GOOGLE_LABEL_TEXT = "Use google translate";
 const DEEPL_LABEL_TEXT = "Use DeepL translate";
 const LIBRETRANSLATE_LABEL_TEXT = "Use LibreTranslate";
-let gsettings;
 
 function init() {
-    gsettings = ExtensionUtils.getSettings(SCHEMA_NAME);
 }
 
 function buildPrefsWidget() {
@@ -35,6 +33,8 @@ function buildPrefsWidget() {
 
 class buildUi {
     constructor() {
+        this.gsettings = ExtensionUtils.getSettings(SCHEMA_NAME);
+
         this.widget = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
             margin_top: 20,
@@ -84,12 +84,12 @@ class buildUi {
         ADRRESS_ENTRY_MAPPING.set(DEEPL_LABEL_TEXT, this.deeplTranslateUrl());
         ADRRESS_ENTRY_MAPPING.set(LIBRETRANSLATE_LABEL_TEXT, this.libreTranslateUrl());
         ADDRESS.forEach(a => ADRRESS_ENTRY_MAPPING.set(a, a));
-        gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
+        this.gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
             if (a != "")
 		ADRRESS_ENTRY_MAPPING.set(a, a);
         });
 
-        let addressActive = gsettings.get_string(ADDRESS_ACTIVE);
+        let addressActive = this.gsettings.get_string(ADDRESS_ACTIVE);
         for (let child = this.addressListBox.get_first_child();
              child != null;
              child = child.get_next_sibling()) {
@@ -109,8 +109,8 @@ class buildUi {
         info.set_markup(string);
         hbox.append(info);
 
-        let button = new Gtk.Switch({ active: gsettings.get_boolean(key) });
-        button.connect('notify::active', (button) => { gsettings.set_boolean(key, button.active); });
+        let button = new Gtk.Switch({ active: this.gsettings.get_boolean(key) });
+        button.connect('notify::active', (button) => { this.gsettings.set_boolean(key, button.active); });
         hbox.append(button);
         return hbox;
     }
@@ -127,12 +127,12 @@ class buildUi {
 
     languageDropDown() {
         let dropDown = Gtk.DropDown.new_from_strings(Object.values(LANGUAGES_LIST));
-        let language = gsettings.get_string(LANGUAGE);
+        let language = this.gsettings.get_string(LANGUAGE);
         dropDown.set_selected(Object.keys(LANGUAGES_LIST).findIndex((element) => element == language));
 
         dropDown.connect("notify::selected", () => {
             let value = dropDown.get_selected_item().get_string();
-            gsettings.set_string(LANGUAGE, Object.keys(LANGUAGES_LIST).find(key => LANGUAGES_LIST[key] == value));
+            this.gsettings.set_string(LANGUAGE, Object.keys(LANGUAGES_LIST).find(key => LANGUAGES_LIST[key] == value));
             this.addressUpdate();
         });
 
@@ -142,9 +142,9 @@ class buildUi {
     addMobileAgent() {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_start: 10 });
         let setting_label = new Gtk.Label({ label: "Use mobile agent", xalign: 0, hexpand: true });
-        this.settingMobileAgent = new Gtk.Switch({ active: gsettings.get_boolean(MOBILE_AGENT) });
+        this.settingMobileAgent = new Gtk.Switch({ active: this.gsettings.get_boolean(MOBILE_AGENT) });
 
-        this.settingMobileAgent.connect('notify::active', (button) => { gsettings.set_boolean(MOBILE_AGENT, button.active); });
+        this.settingMobileAgent.connect('notify::active', (button) => { this.gsettings.set_boolean(MOBILE_AGENT, button.active); });
 
         hbox.append(setting_label);
         hbox.append(this.settingMobileAgent);
@@ -155,9 +155,9 @@ class buildUi {
     addEnableJS() {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_start: 10 });
         let setting_label = new Gtk.Label({ label: "Enable javascript", xalign: 0, hexpand: true });
-        this.settingEnableJS = new Gtk.Switch({ active: gsettings.get_boolean(ENABLE_JAVASCRIPT) });
+        this.settingEnableJS = new Gtk.Switch({ active: this.gsettings.get_boolean(ENABLE_JAVASCRIPT) });
 
-        this.settingEnableJS.connect('notify::active', (button) => { gsettings.set_boolean(ENABLE_JAVASCRIPT, button.active); });
+        this.settingEnableJS.connect('notify::active', (button) => { this.gsettings.set_boolean(ENABLE_JAVASCRIPT, button.active); });
 
         hbox.append(setting_label);
         hbox.append(this.settingEnableJS);
@@ -168,9 +168,9 @@ class buildUi {
     addLoadImage() {
         let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_start: 10});
         let setting_label = new Gtk.Label({ label: "Load image", xalign: 0, hexpand: true });
-        this.settingLoadImage = new Gtk.Switch({ active: gsettings.get_boolean(LOAD_IMAGE) });
+        this.settingLoadImage = new Gtk.Switch({ active: this.gsettings.get_boolean(LOAD_IMAGE) });
 
-        this.settingLoadImage.connect('notify::active', (button) => { gsettings.set_boolean(LOAD_IMAGE, button.active); });
+        this.settingLoadImage.connect('notify::active', (button) => { this.gsettings.set_boolean(LOAD_IMAGE, button.active); });
 
         hbox.append(setting_label);
         hbox.append(this.settingLoadImage);
@@ -212,7 +212,7 @@ class buildUi {
         });
 
         let addressList = [];
-        gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
+        this.gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
             if (a != "")
                 addressList.push(a);
         });
@@ -242,7 +242,7 @@ class buildUi {
     }
 
     deeplTranslateUrl() {
-        let language = gsettings.get_string(LANGUAGE);
+        let language = this.gsettings.get_string(LANGUAGE);
         let url = "https://www.deepl.com/translator#en/" + language + "/%WORD";
 
         return url;
@@ -266,7 +266,7 @@ class buildUi {
     }
 
     libreTranslateUrl() {
-        let language = gsettings.get_string(LANGUAGE);
+        let language = this.gsettings.get_string(LANGUAGE);
         // https://libretranslate.com/?source=en&target=de&q=hello%2520world
         let url = "https://libretranslate.com/?source=en&target=" + language + "&q=%WORD";
 
@@ -292,7 +292,7 @@ class buildUi {
     }
 
     googleTranslateUrl() {
-        let language = gsettings.get_string(LANGUAGE);
+        let language = this.gsettings.get_string(LANGUAGE);
         let url = "https://translate.google.com/#view=home&op=translate&sl=auto&tl=" + language + "&text=%WORD";
 
         return url;
@@ -357,8 +357,8 @@ class buildUi {
             }
         }
 
-        gsettings.set_strv(ADDRESS_LIST, addressList);
-        gsettings.set_string(ADDRESS_ACTIVE, addressActive);
+        this.gsettings.set_strv(ADDRESS_LIST, addressList);
+        this.gsettings.set_string(ADDRESS_ACTIVE, addressActive);
     }
 
     addBoldTextToBox(text, box) {

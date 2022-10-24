@@ -2,6 +2,7 @@
 
 imports.gi.versions.Gio = '2.0';
 imports.gi.versions.Gtk = '3.0';
+imports.gi.versions.WebKit2 = '4.1';
 
 const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
@@ -130,7 +131,7 @@ class Dict {
     }
 
     _onActivate() {
-        //this.window.show_all();
+        this.window.show_all();
     }
 
     _onStartup() {
@@ -386,12 +387,6 @@ class Dict {
 
         if (this.enableTransShell)
             this._shellTranslateWord();
-        else {
-            let id = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
-                this._shellTranslateWord();
-                return GLib.SOURCE_REMOVE;
-            });
-        }
 
         if (addToHistory) {
             this.history.addWord(words);
