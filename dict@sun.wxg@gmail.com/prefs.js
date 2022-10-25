@@ -21,6 +21,7 @@ const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ]
 const ADRRESS_ENTRY_MAPPING = new Map();
 const GOOGLE_LABEL_TEXT = "Use google translate";
 const DEEPL_LABEL_TEXT = "Use DeepL translate";
+const LIBRETRANSLATE_LABEL_TEXT = "Use LibreTranslate";
 
 function init() {
 }
@@ -81,6 +82,7 @@ class buildUi {
 
         ADRRESS_ENTRY_MAPPING.set(GOOGLE_LABEL_TEXT, this.googleTranslateUrl());
         ADRRESS_ENTRY_MAPPING.set(DEEPL_LABEL_TEXT, this.deeplTranslateUrl());
+        ADRRESS_ENTRY_MAPPING.set(LIBRETRANSLATE_LABEL_TEXT, this.libreTranslateUrl());
         ADDRESS.forEach(a => ADRRESS_ENTRY_MAPPING.set(a, a));
         this.gsettings.get_strv(ADDRESS_LIST).forEach( (a) => {
             if (a != "")
@@ -203,6 +205,7 @@ class buildUi {
         let addressBox = new Gtk.Box({ orientation: Gtk.Orientation.VERTICAL, margin_top: 10 });
         addressBox.append(this.addGoogleTranslate());
         addressBox.append(this.addDeeplTranslate());
+        addressBox.append(this.addLibreTranslate());
 
         ADDRESS.forEach( (a) => {
             addressBox.append(this.addressRow(a, true));
@@ -241,6 +244,31 @@ class buildUi {
     deeplTranslateUrl() {
         let language = this.gsettings.get_string(LANGUAGE);
         let url = "https://www.deepl.com/translator#en/" + language + "/%WORD";
+
+        return url;
+    }
+
+    addLibreTranslate() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 10});
+
+        let radioButton = new Gtk.CheckButton({ });
+        radioButton.isDefault = true;
+        radioButton.libreTranslate = true;
+        radioButton.connect("toggled", this.addressUpdate.bind(this));
+        radioButton.set_group(this.radioGroup);
+        hbox.append(radioButton);
+
+        let info = new Gtk.Label({xalign: 0, margin_start: 10});
+        info.set_markup(LIBRETRANSLATE_LABEL_TEXT);
+        hbox.append(info);
+
+        return hbox;
+    }
+
+    libreTranslateUrl() {
+        let language = this.gsettings.get_string(LANGUAGE);
+        // https://libretranslate.com/?source=en&target=de&q=hello%2520world
+        let url = "https://libretranslate.com/?source=en&target=" + language + "&q=%WORD";
 
         return url;
     }
@@ -322,6 +350,8 @@ class buildUi {
                     addressActive = this.googleTranslateUrl();
                 else if (radio.deepl) {
                     addressActive = this.deeplTranslateUrl();
+                } else if (radio.libreTranslate) {
+                    addressActive = this.libreTranslateUrl();
                 } else
                     addressActive = link;
             }
