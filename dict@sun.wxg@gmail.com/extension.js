@@ -1,22 +1,16 @@
 // -*- mode: js2; indent-tabs-mode: nil; js2-basic-offset: 4 -*-
+import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import Meta from 'gi://Meta';
+import Shell from 'gi://Shell';
 
-const Gio = imports.gi.Gio;
-const GLib = imports.gi.GLib;
-const St = imports.gi.St;
-const Meta = imports.gi.Meta;
-const Shell = imports.gi.Shell;
-const GObject = imports.gi.GObject;
-const Mainloop = imports.mainloop;
+import {Extension, gettext as _} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const Gettext = imports.gettext.domain('gnome-shell-extensions');
-const _ = Gettext.gettext;
-
-const Main = imports.ui.main;
-const PanelMenu = imports.ui.panelMenu;
-const Conf = imports.misc.config;
-
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as Conf from 'resource:///org/gnome/shell/misc/config.js';
 
 const CLIPBOARD_TYPE = St.ClipboardType.CLIPBOARD;
 
@@ -81,6 +75,8 @@ const DBusIface = '<node> \
 </node>';
 const DBusProxy = Gio.DBusProxy.makeProxyWrapper(DBusIface);
 
+var dir = null;
+
 function isLess30() {
     let version = Conf.PACKAGE_VERSION.split('.');
     if (version[0] == 3 && version[1] < 30)
@@ -90,8 +86,8 @@ function isLess30() {
 }
 
 class Flag {
-    constructor() {
-        this._gsettings = ExtensionUtils.getSettings(DICT_SCHEMA);
+    constructor(settings) {
+        this._gsettings = settings;
 
         this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
         this.windowFollowPointerID = this._gsettings.connect("changed::" + WINDOW_FOLLOW_POINTER, () => {
@@ -112,7 +108,7 @@ class Flag {
         this.actor.hide();
 
         let gicon = new Gio.FileIcon({
-                    file: Gio.File.new_for_path(Me.path + '/icons/flag.png') });
+                    file: Gio.File.new_for_path(dir.get_path() + '/icons/flag.png') });
         let icon = new St.Icon({ gicon: gicon,
                                  icon_size: 32 });
 
@@ -200,7 +196,7 @@ class Flag {
 
     flagClick() {
         if (this._flagWatchId) {
-            Mainloop.source_remove(this._flagWatchId);
+            GLib.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
         }
 
@@ -216,7 +212,7 @@ class Flag {
         } catch (e) {
             this.createDict();
             let [x, y, mod] =global.get_pointer();
-            this._showDictId = Mainloop.timeout_add(1000, () => {
+            this._showDictId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
                 this.dictProxy.translateWordsRemote(this.text, x, y);
                 return GLib.SOURCE_REMOVE});
 
@@ -288,7 +284,7 @@ class Flag {
     }
 
     createDict() {
-        let file = Me.imports.searchPath + '/dict.js';
+        let file = dir.get_path() + '/dict.js';
         this._app = Gio.AppInfo.create_from_commandline(file, 'dict', Gio.AppInfoCreateFlags.NONE);
         this._app.launch([], null);
     }
@@ -309,11 +305,11 @@ class Flag {
         this.actor.show();
 
         if (this._flagWatchId) {
-            Mainloop.source_remove(this._flagWatchId);
+            GLib.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
         }
 
-        this._flagWatchId = Mainloop.timeout_add(FLAG_DELAY, () => {
+        this._flagWatchId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, FLAG_DELAY, () => {
             this.actor.hide();
             this._flagWatchId = 0;
             return GLib.SOURCE_REMOVE;
@@ -330,7 +326,7 @@ class Flag {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
             this.createDict();
-            this._hideDictId = Mainloop.timeout_add(1000, () => {
+            this._hideDictId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
                 this.dictProxy.hideDictRemote(this.text);
                 return GLib.SOURCE_REMOVE});
             return;
@@ -390,17 +386,17 @@ class Flag {
         Main.wm.removeKeybinding(SHOW_POPUP_WINDOW);
 
         if (this._flagWatchId) {
-            Mainloop.source_remove(this._flagWatchId);
+            GLib.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
         }
 
         if (this._showDictId) {
-            Mainloop.source_remove(this._showDictId);
+            GLib.source_remove(this._showDictId);
             this._showDictId = 0;
         }
 
         if (this._hideDictId) {
-            Mainloop.source_remove(this._hideDictId);
+            GLib.source_remove(this._hideDictId);
             this._hideDictId= 0;
         }
 
@@ -433,17 +429,18 @@ class Flag {
 
 var MenuButton = GObject.registerClass(
 class MenuButton extends PanelMenu.Button {
-    _init() {
+    _init(settings, flag) {
         super._init(0.0, _('Dict flag'));
 
-        this._gsettings = ExtensionUtils.getSettings(DICT_SCHEMA);
+        this.flag = flag;
+        this._gsettings = settings;
         this.dictActive = false;
 
-        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(Me.path + '/icons/dict.png') });
+        let gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(dir.get_path() + '/icons/dict.png') });
         this.iconEnable = new St.Icon({ gicon: gicon,
                                  style_class: 'system-status-icon' });
 
-        gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(Me.path + '/icons/dict-disable.png') });
+        gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(dir.get_path() + '/icons/dict-disable.png') });
         this.iconDisable = new St.Icon({ gicon: gicon,
                                  style_class: 'system-status-icon' });
 
@@ -475,8 +472,8 @@ class MenuButton extends PanelMenu.Button {
     }
 
     _onButtonPress(actor, event) {
-        flag.windowCenter = true;
-        flag.hideDict();
+        this.flag.windowCenter = true;
+        this.flag.hideDict();
     }
 
     destroy() {
@@ -487,22 +484,28 @@ class MenuButton extends PanelMenu.Button {
     }
 });
 
-let flag;
-let menuButton;
+export default class PanelScrollExtension extends Extension {
+    constructor(metadata) {
+        super(metadata);
+    }
 
-function init(metadata) {
-}
+    enable() {
+        this._settings = this.getSettings();
+        dir = this.dir;
 
-function enable() {
-    flag = new Flag();
-    menuButton = new MenuButton();
-    Main.panel.addToStatusArea('flag', menuButton);
-}
+        this.flag = new Flag(this._settings);
+        this.menuButton = new MenuButton(this._settings, this.flag);
+        Main.panel.addToStatusArea('flag', this.menuButton);
+    }
 
-function disable() {
-    flag.destroy();
-    flag = null;
+    disable() {
+        this.flag.destroy();
+        this.flag = null;
 
-    menuButton.destroy();
-    menuButton = null;
+        this.menuButton.destroy();
+        this.menuButton = null;
+
+        this._settings = null;
+        dir = null;
+    }
 }

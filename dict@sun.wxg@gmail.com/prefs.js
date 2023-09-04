@@ -1,9 +1,13 @@
-const Gtk = imports.gi.Gtk;
-const GLib = imports.gi.GLib;
+import Adw from 'gi://Adw';
+import Gtk from 'gi://Gtk';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const LANGUAGES_LIST = Me.imports.language.LANGUAGES_LIST;
+import {ExtensionPreferences} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+
+//import * as ExtensionUtils from 'resource:///org/gnome/shell/misc/extensionUtils.js';
+//const ExtensionUtils = imports.misc.extensionUtils;
+//const Me = ExtensionUtils.getCurrentExtension();
+//const LANGUAGES_LIST = Me.imports.language.LANGUAGES_LIST;
+import {LANGUAGES_LIST} from './language.js';
 
 const SCHEMA_NAME = 'org.gnome.shell.extensions.dict';
 const ADDRESS_LIST = 'address-list';
@@ -23,17 +27,9 @@ const GOOGLE_LABEL_TEXT = "Use google translate";
 const DEEPL_LABEL_TEXT = "Use DeepL translate";
 const LIBRETRANSLATE_LABEL_TEXT = "Use LibreTranslate";
 
-function init() {
-}
-
-function buildPrefsWidget() {
-    let ui = new buildUi();
-    return ui.widget;
-}
-
 class buildUi {
-    constructor() {
-        this.gsettings = ExtensionUtils.getSettings(SCHEMA_NAME);
+    constructor(settings) {
+        this.gsettings = settings;
 
         this.widget = new Gtk.Box({
             orientation: Gtk.Orientation.VERTICAL,
@@ -366,5 +362,12 @@ class buildUi {
         txt.set_markup('<b>' + text + '</b>');
         txt.set_wrap(true);
         box.append(txt);
+    }
+}
+
+export default class DictPrefs extends ExtensionPreferences {
+    getPreferencesWidget() {
+        let ui = new buildUi(this.getSettings());
+        return ui.widget;
     }
 }
