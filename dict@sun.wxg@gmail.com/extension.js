@@ -75,7 +75,7 @@ const DBusIface = '<node> \
 </node>';
 const DBusProxy = Gio.DBusProxy.makeProxyWrapper(DBusIface);
 
-var dir = null;
+let dir = null;
 
 function isLess30() {
     let version = Conf.PACKAGE_VERSION.split('.');
@@ -427,7 +427,7 @@ class Flag {
     }
 }
 
-var MenuButton = GObject.registerClass(
+const MenuButton = GObject.registerClass(
 class MenuButton extends PanelMenu.Button {
     _init(settings, flag) {
         super._init(0.0, _('Dict flag'));

@@ -1,4 +1,4 @@
-export var LANGUAGES_LIST = {
+export const LANGUAGES_LIST = {
     "auto": "Detect language",
     "af": "Afrikaans",
     "ar": "Arabic",
