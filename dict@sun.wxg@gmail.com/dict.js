@@ -131,7 +131,7 @@ class Dict {
     }
 
     _onActivate() {
-        this.window.show_all();
+        this.window.hide();
     }
 
     _onStartup() {
