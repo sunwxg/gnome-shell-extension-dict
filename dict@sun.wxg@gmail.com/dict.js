@@ -7,6 +7,7 @@ imports.gi.versions.WebKit2 = '4.1';
 const Gtk = imports.gi.Gtk;
 const Gdk = imports.gi.Gdk;
 const Gio = imports.gi.Gio;
+const GObject = imports.gi.GObject;
 const System = imports.system;
 const GLib = imports.gi.GLib;
 const Webkit = imports.gi.WebKit2;
@@ -161,9 +162,6 @@ class Dict {
         this.builder.add_from_file(this.path + '/dict.ui');
         this.window.set_titlebar(this.builder.get_object('header_bar'));
 
-        let searchButton = this.builder.get_object('search_button');
-        searchButton.connect('toggled', this.searchToggled.bind(this));
-
         this.historyButton = this.builder.get_object('history_button');
         this.historyButton.connect('toggled', this.historyToggled.bind(this));
 
@@ -176,6 +174,12 @@ class Dict {
         this.searchEntry = this.builder.get_object('search_entry');
         this.searchEntry.set_no_show_all(true);
         this.searchEntry.connect('activate', this.searchEntryActivate.bind(this));
+        this.searchEntry.connect('show', this.searchEntryShow.bind(this));
+
+        let searchButton = this.builder.get_object('search_button');
+        searchButton.bind_property('active',
+            this.searchEntry, 'visible',
+            GObject.BindingFlags.SYNC_CREATE);
 
         let hbox = this.builder.get_object('horizontal_box');
         this.history = new History();
@@ -225,8 +229,7 @@ class Dict {
         this.web_view.load_uri(this._getUrl());
     }
 
-    searchToggled(button) {
-        this.searchEntry.visible = button.get_active();
+    searchEntryShow(button) {
         this.searchEntry.grab_focus_without_selecting();
     }
 
