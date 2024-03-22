@@ -118,7 +118,7 @@ class Flag {
                                     track_hover: true,
                                     child: icon });
         button.connect("clicked", this.flagClick.bind(this));
-        this.actor.add_actor(button);
+        this.actor.add_child(button);
 
         Main.layoutManager.addChrome(this.actor);
 
