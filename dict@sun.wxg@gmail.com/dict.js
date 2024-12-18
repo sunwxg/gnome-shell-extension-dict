@@ -285,7 +285,7 @@ class Dict {
     }
 
     configOpen() {
-        let [, argv] = GLib.shell_parse_argv('gnome-shell-extension-prefs ' + 'dict@sun.wxg@gmail.com');
+        let [, argv] = GLib.shell_parse_argv('gnome-extensions ' + 'prefs ' + 'dict@sun.wxg@gmail.com');
 
         let [success, pid] = GLib.spawn_async(null, argv, null,
                                               GLib.SpawnFlags.SEARCH_PATH | GLib.SpawnFlags.DO_NOT_REAP_CHILD,
