@@ -7,7 +7,8 @@
   "description": "Translate word on the screen.\nDefault web address is translate.google.com, you can add the web address for your own language. Also you can contribute your web address to my github repo.\nUse hotkey Ctrl+Alt+j to toggle the function.\nUse hotkey Ctrl+Alt+o to show popup window",
   "shell-version": [
     "46",
-    "47"
+    "47",
+    "48"
   ],
   "original-authors": "sun.wxg@gmail.com",
   "url": "https://github.com/sunwxg/gnome-shell-extension-dict"
