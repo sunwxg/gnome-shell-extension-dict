@@ -206,7 +206,7 @@ class Dict {
         scroll_window.add(this.shell);
         this.shell.scroll_window = scroll_window;
 
-        let cacheDir = '/run/dict';
+        let cacheDir = '/tmp/dict';
         let manager = new Webkit.WebsiteDataManager({base_cache_directory:                cacheDir,
                                                      base_data_directory:                 cacheDir,
                                                      disk_cache_directory:                cacheDir,
