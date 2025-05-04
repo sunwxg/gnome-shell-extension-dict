@@ -17,6 +17,11 @@
     <property name="can_focus">False</property>
     <property name="pixbuf">icons/push-pin.png</property>
   </object>
+  <object class="GtkImage" id="backward_image">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="pixbuf">icons/backward.png</property>
+  </object>
   <object class="GtkImage" id="search_image">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -47,6 +52,18 @@
       </object>
       <packing>
         <property name="position">1</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkButton" id="backward_button">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">True</property>
+        <property name="image">backward_image</property>
+        <property name="relief">none</property>
+      </object>
+      <packing>
+        <property name="position">2</property>
       </packing>
     </child>
     <child>

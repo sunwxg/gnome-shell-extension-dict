@@ -70,10 +70,19 @@ const ENABLE_JAVASCRIPT = 'enable-javascript';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
 const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
+const ENABLE_MDICT = 'enable-mdict';
 const LANGUAGE = 'language';
 const ENABLE_WEB = 'enable-web';
 
 const USER_AGENT = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Mobile Safari/537.36";
+
+let gsettings = Util.getSettings(DICT_SCHEMA);
+let enableMdict = gsettings.get_boolean(ENABLE_MDICT);
+
+let LocalDict;
+if (enableMdict) {
+    LocalDict = imports.localDict;
+}
 
 class Dict {
     constructor(words) {
@@ -86,6 +95,8 @@ class Dict {
             this.words = words;
         else
             this.words = 'welcome';
+
+        this.wordStack = [];
 
         this._gsettings = Util.getSettings(DICT_SCHEMA);
 
@@ -168,6 +179,8 @@ class Dict {
         this.pinToggleButton = this.builder.get_object('pin_button');
         this.pinToggleButton.connect('toggled', this.pinToggled.bind(this));
 
+        this.backwardButton = this.builder.get_object('backward_button');
+
         let configButton = this.builder.get_object('config_button');
         configButton.connect('clicked', this.configOpen.bind(this));
 
@@ -219,14 +232,33 @@ class Dict {
         context.get_cookie_manager().set_accept_policy(Webkit.CookieAcceptPolicy.ALWAYS);
         this.web_view = Webkit.WebView.new_with_context(context);
         let settings = this.web_view.get_settings();
-        settings.set_enable_page_cache(false);
-        settings.set_enable_offline_web_application_cache(false);
+        settings.set_enable_page_cache(true);
         settings.set_enable_javascript(this.enableJS);
         settings.set_auto_load_images(this.loadImage);
         this._setMobileAgent();
         this.web_view.set_settings(settings);
 
-        this.web_view.load_uri(this._getUrl());
+        this.backwardButton.connect('clicked', () => {
+            if (enableMdict && this.wordStack.length > 1) {
+                this.wordStack.pop();
+                let word = this.wordStack.pop();
+                this.wordStack.push(word);
+                this.words = word;
+                this.web_view.load_html(LocalDict.translate(word), null);
+                return;
+            }
+
+            if (this.web_view.can_go_back())
+                this.web_view.go_back();
+        });
+
+        if (enableMdict)
+            this.web_view.connect('decide-policy', LocalDict.overWriteLoaduri.bind(this));
+
+        if (enableMdict)
+            this.web_view.load_html(LocalDict.translate("welcome"), null);
+        else
+            this.web_view.load_uri(this._getUrl());
     }
 
     searchEntryShow(button) {
@@ -385,7 +417,12 @@ class Dict {
         this.words = words == "" ? 'welcome' : words;
 
         if (this.enableWeb && oldWord != words) {
-            this.web_view.load_uri(this._getUrl(this.words));
+            if (enableMdict) {
+                this.wordStack.push(this.words);
+                this.web_view.load_html(LocalDict.translate(this.words), null);
+            }
+            else
+                this.web_view.load_uri(this._getUrl(this.words));
         }
 
         if (this.enableTransShell)

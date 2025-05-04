@@ -66,6 +66,12 @@
       <description>
       </description>
     </key>
+    <key name="enable-mdict" type="b">
+      <default>false</default>
+      <summary>Enable local Mdict</summary>
+      <description>
+      </description>
+    </key>
     <key name="mobile-agent" type="b">
       <default>true</default>
       <summary>Use mobile agent</summary>
