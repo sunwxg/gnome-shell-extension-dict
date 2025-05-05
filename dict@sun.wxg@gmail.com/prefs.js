@@ -19,6 +19,7 @@ const TOP_ICON = 'top-icon';
 const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
 const LANGUAGE = 'language';
 const ENABLE_WEB = 'enable-web';
+const ENABLE_HOVER = 'enable-hover';
 const WINDOW_FOLLOW_POINTER = 'window-follow-pointer';
 
 const ADDRESS = [ "https://www.bing.com/dict/search=?q=%WORD&mkt=zh-cn" ]
@@ -56,6 +57,7 @@ class buildUi {
 
         vbox.append(this.addItemSwitch("<b>Show top icon</b>", TOP_ICON));
         vbox.append(this.addItemSwitch("<b>Popup window follow pointer</b>", WINDOW_FOLLOW_POINTER));
+        vbox.append(this.addItemSwitch("<b>Hover flag to translate</b>", ENABLE_HOVER));
 
         vbox.append(this.addLanguageDropDown());
 

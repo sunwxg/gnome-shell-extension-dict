@@ -30,6 +30,12 @@
       <description>
       </description>
     </key>
+    <key name="enable-hover" type="b">
+      <default>false</default>
+      <summary>hover flag to translate</summary>
+      <description>
+      </description>
+    </key>
     <key name="language" type="s">
       <default>"auto"</default>
       <summary>target language</summary>

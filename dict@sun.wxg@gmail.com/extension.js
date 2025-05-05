@@ -22,10 +22,7 @@ const HOTKEY = 'hotkey';
 const TRIGGER_STATE = 'trigger-state';
 const WINDOW_WIDTH = 'window-width';
 const WINDOW_HEIGHT = 'window-height';
-const ADDRESS_ACTIVE = 'address-active';
-const MOBILE_AGENT = 'mobile-agent';
-const ENABLE_JAVASCRIPT = 'enable-javascript';
-const LOAD_IMAGE = 'load-image';
+const ENABLE_HOVER = 'enable-hover';
 const TOP_ICON = 'top-icon';
 const WINDOW_FOLLOW_POINTER = 'window-follow-pointer';
 const SHOW_POPUP_WINDOW = 'hotkey-popup-window';
@@ -93,6 +90,10 @@ class Flag {
         this.windowFollowPointerID = this._gsettings.connect("changed::" + WINDOW_FOLLOW_POINTER, () => {
             this.windowFollowPointer = this._gsettings.get_boolean(WINDOW_FOLLOW_POINTER);
         });
+        this.enableHover = this._gsettings.get_boolean(ENABLE_HOVER);
+        this.enableHoverID = this._gsettings.connect("changed::" + ENABLE_HOVER, () => {
+            this.enableHover = this._gsettings.get_boolean(ENABLE_HOVER);
+        });
 
         try {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
@@ -118,6 +119,9 @@ class Flag {
                                     track_hover: true,
                                     child: icon });
         button.connect("clicked", this.flagClick.bind(this));
+        button.connect('notify::hover',
+            () => this._onHover(button.hover));
+
         this.actor.add_child(button);
 
         Main.layoutManager.addChrome(this.actor);
@@ -162,6 +166,14 @@ class Flag {
         this.dictProxy.connectSignal('windowSizeChanged', this.windowSizeChanged.bind(this));
         this.dictProxy.connectSignal('pinned', this.pinned.bind(this));
         this.pin = this.dictProxy.Pin;
+    }
+
+    _onHover(selected) {
+        if (!this.enableHover)
+            return;
+
+        if (selected)
+            this.flagClick();
     }
 
     checkStClipboard() {
@@ -417,6 +429,10 @@ class Flag {
         if (this.windowFollowPointerID > 0) {
             this._gsettings.disconnect(this.windowFollowPointerID);
             this.windowFollowPointerID = 0;
+        }
+        if (this.enableHoverID > 0) {
+            this._gsettings.disconnect(this.enableHoverID);
+            this.enableHoverID= 0;
         }
 
         try {
