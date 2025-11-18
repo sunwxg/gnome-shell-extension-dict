@@ -14,6 +14,7 @@ const ADDRESS_LIST = 'address-list';
 const ADDRESS_ACTIVE = 'address-active';
 const MOBILE_AGENT = 'mobile-agent';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
+const ENABLE_MEDIA = 'enable-media';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
 const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
@@ -69,6 +70,7 @@ class buildUi {
         vbox.append(new Gtk.Separator({ orientation: Gtk.Orientation.HORIZONTAL, margin_bottom: 5, margin_top: 5}));
         vbox.append(this.addMobileAgent());
         vbox.append(this.addEnableJS());
+        vbox.append(this.addEnableMedia());
         vbox.append(this.addLoadImage());
 
         this.addBoldTextToBox("Web online address", vbox);
@@ -159,6 +161,19 @@ class buildUi {
 
         hbox.append(setting_label);
         hbox.append(this.settingEnableJS);
+
+        return hbox;
+    }
+
+    addEnableMedia() {
+        let hbox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, margin_top: 5, margin_start: 10 });
+        let setting_label = new Gtk.Label({ label: "Enable Media Play", xalign: 0, hexpand: true });
+        this.settingEnableMedia = new Gtk.Switch({ active: this.gsettings.get_boolean(ENABLE_MEDIA) });
+
+        this.settingEnableMedia.connect('notify::active', (button) => { this.gsettings.set_boolean(ENABLE_MEDIA, button.active); });
+
+        hbox.append(setting_label);
+        hbox.append(this.settingEnableMedia);
 
         return hbox;
     }

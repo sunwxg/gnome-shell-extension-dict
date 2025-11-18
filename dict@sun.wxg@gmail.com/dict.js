@@ -67,6 +67,7 @@ const WINDOW_HEIGHT = 'window-height';
 const ADDRESS_ACTIVE = 'address-active';
 const MOBILE_AGENT = 'mobile-agent';
 const ENABLE_JAVASCRIPT = 'enable-javascript';
+const ENABLE_MEDIA = 'enable-media';
 const LOAD_IMAGE = 'load-image';
 const TOP_ICON = 'top-icon';
 const ENABLE_TRANSLATE_SHELL = 'enable-translate-shell';
@@ -88,6 +89,7 @@ class Dict {
     constructor(words) {
         this.mobileAgent = false;
         this.enableJS = false;
+        this.enableMedia = false;
         this.loadImage = false;
         this.active = false;
 
@@ -113,6 +115,10 @@ class Dict {
 
         this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
         this.enableJSId = this._gsettings.connect("changed::" + ENABLE_JAVASCRIPT,
+                                                  () => { this._update(); });
+
+        this.enableMedia = this._gsettings.get_boolean(ENABLE_MEDIA);
+        this.enableMediaId = this._gsettings.connect("changed::" + ENABLE_MEDIA,
                                                   () => { this._update(); });
 
         this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
@@ -232,6 +238,7 @@ class Dict {
         context.get_cookie_manager().set_accept_policy(Webkit.CookieAcceptPolicy.ALWAYS);
         this.web_view = Webkit.WebView.new_with_context(context);
         let settings = this.web_view.get_settings();
+        settings.set_enable_media(this.enableMedia);
         settings.set_enable_page_cache(true);
         settings.set_enable_javascript(this.enableJS);
         settings.set_auto_load_images(this.loadImage);
@@ -455,6 +462,9 @@ class Dict {
 
         this.enableJS = this._gsettings.get_boolean(ENABLE_JAVASCRIPT);
         settings.set_enable_javascript(this.enableJS);
+
+        this.enableMedia = this._gsettings.get_boolean(ENABLE_MEDIA);
+        settings.set_enable_media(this.enableMedia);
 
         this.loadImage = this._gsettings.get_boolean(LOAD_IMAGE);
         settings.set_auto_load_images(this.loadImage);

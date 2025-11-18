@@ -90,6 +90,12 @@
       <description>
       </description>
     </key>
+    <key name="enable-media" type="b">
+      <default>true</default>
+      <summary>Enable media</summary>
+      <description>
+      </description>
+    </key>
     <key name="load-image" type="b">
       <default>true</default>
       <summary>Load image</summary>
