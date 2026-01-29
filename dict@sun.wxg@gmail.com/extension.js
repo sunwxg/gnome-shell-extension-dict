@@ -338,7 +338,7 @@ class Flag {
             this.dbusProxy.GetNameOwnerSync('org.gnome.Dict');
         } catch (e) {
             this.createDict();
-            this._hideDictId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+            this._hideDictId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2000, () => {
                 this.dictProxy.hideDictRemote(this.text);
                 return GLib.SOURCE_REMOVE});
             return;
