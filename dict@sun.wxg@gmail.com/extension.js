@@ -463,7 +463,7 @@ class MenuButton extends PanelMenu.Button {
         this._addIcon();
         this._showIcon();
 
-        this.connect('button-press-event', this._onButtonPress.bind(this));
+        this._clickGesture.connect('recognize', () => { this._onButtonPress(); });
 
         this.iconId = this._gsettings.connect('changed::' + TRIGGER_STATE, this._addIcon.bind(this));
         this.showIconId = this._gsettings.connect('changed::' + TOP_ICON, this._showIcon.bind(this));
@@ -487,7 +487,7 @@ class MenuButton extends PanelMenu.Button {
         this.visible = showIcon;
     }
 
-    _onButtonPress(actor, event) {
+    _onButtonPress() {
         this.flag.windowCenter = true;
         this.flag.hideDict();
     }
