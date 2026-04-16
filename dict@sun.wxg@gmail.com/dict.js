@@ -251,7 +251,8 @@ class Dict {
                 let word = this.wordStack.pop();
                 this.wordStack.push(word);
                 this.words = word;
-                this.web_view.load_html(LocalDict.translate(word), null);
+                //this.web_view.load_html(LocalDict.translate(word), 'file:///tmp/dict/');
+                LocalDict.translate(word, this.web_view);
                 return;
             }
 
@@ -263,7 +264,8 @@ class Dict {
             this.web_view.connect('decide-policy', LocalDict.overWriteLoaduri.bind(this));
 
         if (enableMdict)
-            this.web_view.load_html(LocalDict.translate("welcome"), null);
+            //this.web_view.load_html(LocalDict.translate("welcome"),  'file:///tmp/dict/');
+            LocalDict.translate("welcome", this.web_view);
         else
             this.web_view.load_uri(this._getUrl());
     }
@@ -426,7 +428,8 @@ class Dict {
         if (this.enableWeb && oldWord != words) {
             if (enableMdict) {
                 this.wordStack.push(this.words);
-                this.web_view.load_html(LocalDict.translate(this.words), null);
+                //this.web_view.load_html(LocalDict.translate(this.words), 'file:///tmp/dict/');
+                LocalDict.translate(this.words, this.web_view);
             }
             else
                 this.web_view.load_uri(this._getUrl(this.words));
