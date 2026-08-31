@@ -134,9 +134,7 @@ class Flag {
         this._selectionChangedId = 0;
 
         this._selectionChangedId = global.display.get_selection().connect('owner-changed', (sel, type, source) => {
-            if(type != St.ClipboardType.PRIMARY)
-                return;
-            this.checkStClipboard();
+            this.checkStClipboard(type);
         });
 
         this.windowCenter = false;
@@ -176,18 +174,32 @@ class Flag {
             this.flagClick();
     }
 
-    checkStClipboard() {
-        this.stClipboard.get_text(St.ClipboardType.PRIMARY,
-            (clipboard, text) => {
-                if (!text)
-                    return;
+    checkStClipboard(type) {
+        if (type == St.ClipboardType.PRIMARY) {
+            this.stClipboard.get_text(St.ClipboardType.PRIMARY,
+                (clipboard, text) => {
+                    if (!text)
+                        return;
 
-                this.text = text;
-                if (this.text != this.oldText) {
-                    this.oldText = this.text;
-                    this.showFlag();
-                }
-            });
+                    this.text = text;
+                    if (this.text != this.oldText) {
+                        this.oldText = this.text;
+                        this.showFlag();
+                    }
+                });
+        } else {
+            this.stClipboard.get_text(St.ClipboardType.CLIPBOARD,
+                (clipboard, text) => {
+                    if (!text)
+                        return;
+
+                    this.text = text;
+                    if (this.text != this.oldText) {
+                        this.oldText = this.text;
+                        this.showFlag();
+                    }
+                });
+        }
     }
 
     checkClipboard(clipboard, event) {
