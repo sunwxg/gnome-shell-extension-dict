@@ -409,6 +409,9 @@ class Flag {
         Main.wm.removeKeybinding(HOTKEY);
         Main.wm.removeKeybinding(SHOW_POPUP_WINDOW);
 
+        this.actor.destroy();
+        this.actor = null;
+
         if (this._flagWatchId) {
             GLib.source_remove(this._flagWatchId);
             this._flagWatchId = 0;
@@ -475,7 +478,7 @@ class MenuButton extends PanelMenu.Button {
         this._addIcon();
         this._showIcon();
 
-        this._clickGesture.connect('recognize', () => { this._onButtonPress(); });
+        this.gestureId = this._clickGesture.connect('recognize', () => { this._onButtonPress(); });
 
         this.iconId = this._gsettings.connect('changed::' + TRIGGER_STATE, this._addIcon.bind(this));
         this.showIconId = this._gsettings.connect('changed::' + TOP_ICON, this._showIcon.bind(this));
@@ -505,6 +508,7 @@ class MenuButton extends PanelMenu.Button {
     }
 
     destroy() {
+        this._gsettings.disconnect(this.gestureId);
         this._gsettings.disconnect(this.iconId);
         this._gsettings.disconnect(this.showIconId);
 

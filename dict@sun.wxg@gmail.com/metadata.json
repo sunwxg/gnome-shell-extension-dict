@@ -1,17 +1,10 @@
 {
   "uuid": "dict@sun.wxg@gmail.com",
-  "extension-id": "dict",
   "settings-schema": "org.gnome.shell.extensions.dict",
-  "gettext-domain": "gnome-shell-extensions",
   "name": "Screen word translate",
-  "description": "Translate word on the screen.\nDefault web address is translate.google.com, you can add the web address for your own language. Also you can contribute your web address to my github repo.\nUse hotkey Ctrl+Alt+j to toggle the function.\nUse hotkey Ctrl+Alt+o to show popup window",
+  "description": "Translate word on the screen.\nDefault web address is translate.google.com, you can add the web address for your own language. Also you can contribute your web address to my github repo.\nThe extension will access the system clipboard.\nUse hotkey Ctrl+Alt+j to toggle the function.\nUse hotkey Ctrl+Alt+o to show popup window",
   "shell-version": [
-    "46",
-    "47",
-    "48",
-    "49",
-    "50"
+    "51"
   ],
-  "original-authors": "sun.wxg@gmail.com",
   "url": "https://github.com/sunwxg/gnome-shell-extension-dict"
 }

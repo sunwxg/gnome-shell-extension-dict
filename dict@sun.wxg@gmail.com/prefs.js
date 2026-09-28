@@ -383,8 +383,13 @@ class buildUi {
 }
 
 export default class DictPrefs extends ExtensionPreferences {
-    getPreferencesWidget() {
-        let ui = new buildUi(this.getSettings());
-        return ui.widget;
+    fillPreferencesWindow(window) {
+        const ui = new buildUi(this.getSettings());
+
+        const page = new Adw.PreferencesPage();
+        const group = new Adw.PreferencesGroup();
+        group.add(ui.widget);
+        page.add(group);
+        window.add(page);
     }
 }
