@@ -427,8 +427,6 @@ class Flag {
             this._hideDictId= 0;
         }
 
-        Main.layoutManager.removeChrome(this.actor);
-
         if (this._selectionChangedId > 0) {
             global.display.get_selection().disconnect(this._selectionChangedId);
             this._selectionChangedId = 0;
