@@ -225,17 +225,23 @@ class Dict {
         scroll_window.add(this.shell);
         this.shell.scroll_window = scroll_window;
 
-        let cacheDir = '/tmp/dict';
+        // Keep website data per user and outside /tmp so logins survive restarts and reboots
+        let dataDir = GLib.build_filenamev([GLib.get_user_data_dir(), 'gnome-shell-extension-dict']);
+        let cacheDir = GLib.build_filenamev([GLib.get_user_cache_dir(), 'gnome-shell-extension-dict']);
+        GLib.mkdir_with_parents(dataDir, 0o700);
+        GLib.mkdir_with_parents(cacheDir, 0o700);
         let manager = new Webkit.WebsiteDataManager({base_cache_directory:                cacheDir,
-                                                     base_data_directory:                 cacheDir,
+                                                     base_data_directory:                 dataDir,
                                                      disk_cache_directory:                cacheDir,
-                                                     indexeddb_directory:                 cacheDir,
-                                                     local_storage_directory:             cacheDir,
+                                                     indexeddb_directory:                 dataDir,
+                                                     local_storage_directory:             dataDir,
                                                      offline_application_cache_directory: cacheDir,
-                                                     websql_directory:                    cacheDir});
+                                                     websql_directory:                    dataDir});
 
         let context = Webkit.WebContext.new_with_website_data_manager(manager);
         context.get_cookie_manager().set_accept_policy(Webkit.CookieAcceptPolicy.ALWAYS);
+        context.get_cookie_manager().set_persistent_storage(GLib.build_filenamev([dataDir, 'cookies.sqlite']),
+                                                            Webkit.CookiePersistentStorage.SQLITE);
         this.web_view = Webkit.WebView.new_with_context(context);
         let settings = this.web_view.get_settings();
         settings.set_enable_media(this.enableMedia);
